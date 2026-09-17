@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    height: 100dvh;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #FBFBFB;
+    color: #18181B;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, kbd, samp, pre, .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+/* Architectural subtle hair-grid with warm #FBFBFB base */
+.gallery-grid {
+  background-size: 48px 48px;
+  background-image: 
+    linear-gradient(to right, rgba(24, 24, 27, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 24, 27, 0.025) 1px, transparent 1px);
+}
+
+/* 6px Hotspot Pulse Animation */
+@keyframes hotspot-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  60% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.hotspot-pulse-ring {
+  animation: hotspot-pulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.hotspot-pulse-ring-active {
+  animation: hotspot-pulse 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* Hide scrollbar completely for zero-scroll UI */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
