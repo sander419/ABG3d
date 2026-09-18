@@ -10,8 +10,12 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { Flame, ShieldCheck, Zap, Info, X, ChevronRight } from 'lucide-react';
+import { PANEL_CONFIG, formatTemperatureC } from '../../data/panelConfig';
 
 export type ThermalMetricType = 'uValue' | 'rValue' | 'heatLoss';
+
+/** Перепад температур иллюстративного расчёта — из PANEL_CONFIG.climate (P2-8). */
+const DELTA_T = PANEL_CONFIG.climate.deltaTC;
 
 interface ThermalDataPoint {
   id: string;
@@ -21,14 +25,18 @@ interface ThermalDataPoint {
   thickness: string;
   uValue: number; // Вт/(м²·К) - меньше = лучше
   rValue: number; // (м²·°C)/Вт - больше = лучше
-  heatLoss: number; // кВт на 100 м² при ΔT = 45°C
+  heatLoss: number; // кВт на 100 м² при выбранном ΔT
   lambda: string; // Вт/(м·К)
-  equivThickness: string; // Толщина для R0 = 9.2
+  equivThickness: string; // Толщина для R0 = PANEL_CONFIG.meta.r0Value
   color: string;
   note: string;
 }
 
-const THERMAL_COMPARISON_DATA: ThermalDataPoint[] = [
+/**
+ * Данные графика. Экспортируется для теста-сторожа, который проверяет, что
+ * теплопотери согласованы с каноническим ΔT (U · 100 м² · ΔT).
+ */
+export const THERMAL_COMPARISON_DATA: ThermalDataPoint[] = [
   {
     id: 'prefab-panel',
     name: '3D Prefab панель (PIR 200 мм)',
@@ -36,8 +44,8 @@ const THERMAL_COMPARISON_DATA: ThermalDataPoint[] = [
     category: 'prefab',
     thickness: '390 мм',
     uValue: 0.11,
-    rValue: 9.2,
-    heatLoss: 0.49,
+    rValue: PANEL_CONFIG.meta.r0Value,
+    heatLoss: 0.46, // 0.11 · 100 м² · 42 K
     lambda: '0.022',
     equivThickness: '390 мм',
     color: '#10B981', // Emerald 500
@@ -51,7 +59,7 @@ const THERMAL_COMPARISON_DATA: ThermalDataPoint[] = [
     thickness: '400 мм',
     uValue: 0.36,
     rValue: 2.8,
-    heatLoss: 1.62,
+    heatLoss: 1.51, // 0.36 · 100 м² · 42 K
     lambda: '0.120',
     equivThickness: '1 150 мм',
     color: '#F59E0B', // Amber 500
@@ -65,7 +73,7 @@ const THERMAL_COMPARISON_DATA: ThermalDataPoint[] = [
     thickness: '—',
     uValue: 0.31,
     rValue: 3.2,
-    heatLoss: 1.4,
+    heatLoss: 1.30, // 0.31 · 100 м² · 42 K
     lambda: '—',
     equivThickness: '980 мм',
     color: '#71717A', // Zinc 500
@@ -111,7 +119,7 @@ const CustomThermalTooltip: React.FC<CustomTooltipProps> = ({ active, payload, m
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-zinc-400">Потери при -25°C (100м²):</span>
+          <span className="text-zinc-400">Потери при {formatTemperatureC(PANEL_CONFIG.climate.outdoorC)} (100 м²):</span>
           <span className="font-bold" style={{ color: data.color }}>
             {data.heatLoss} <span className="text-zinc-400 text-[9px]">кВт</span>
           </span>
@@ -158,16 +166,16 @@ export const ThermalUValueComparison: React.FC<ThermalUValueComparisonProps> = (
       description: 'Больше значение — выше термический барьер и комфорт',
       dataKey: 'rValue',
       domain: [0, 10],
-      advantageText: 'R₀ = 9.2 — почти в 3 раза превосходит норматив СП 50',
+      advantageText: `R₀ = ${PANEL_CONFIG.meta.r0Value} — почти в 3 раза превосходит норматив СП 50`,
       advantageColor: 'text-emerald-600',
     },
     heatLoss: {
-      title: 'Теплопотери стены 100 м² при ΔT 45°C (-25°C на улице)',
+      title: `Теплопотери стены 100 м² при ΔT ${DELTA_T} °C (${formatTemperatureC(PANEL_CONFIG.climate.outdoorC)} снаружи, ${formatTemperatureC(PANEL_CONFIG.climate.indoorC)} внутри)`,
       unit: 'кВт',
       description: 'Расчетная мощность отопления, уходящая сквозь фасад',
       dataKey: 'heatLoss',
       domain: [0, 1.8],
-      advantageText: 'Экономия до 1.13 кВт/ч на каждые 100 м² фасада (-69%)',
+      advantageText: 'Экономия до 1.05 кВт/ч на каждые 100 м² фасада (-69%)',
       advantageColor: 'text-emerald-600',
     },
   };
@@ -177,7 +185,7 @@ export const ThermalUValueComparison: React.FC<ThermalUValueComparisonProps> = (
   return (
     <div
       id="thermal-uvalue-comparison-card"
-      className={`bg-white/95 backdrop-blur-2xl border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.14)] rounded-2xl p-4 sm:p-5 w-[340px] xs:w-[380px] sm:w-[440px] max-w-[94vw] text-[#18181B] select-none pointer-events-auto transition-all duration-200 ${className}`}
+      className={`bg-white/95 backdrop-blur-2xl border border-black/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.14)] rounded-2xl p-4 sm:p-5 w-[340px] xs:w-[380px] sm:w-[440px] max-w-[94vw] text-[#18181B] pointer-events-auto transition-all duration-200 ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}

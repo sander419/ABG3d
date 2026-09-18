@@ -1,4 +1,5 @@
 import React from 'react';
+import { PANEL_CONFIG } from '../../data/panelConfig';
 import { X, Check, AlertCircle, ArrowUpRight } from 'lucide-react';
 
 interface ComparisonDrawerProps {
@@ -131,7 +132,7 @@ export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({
 
           {/* Footnote */}
           <div className="mt-4 pt-3 border-t border-black/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[9px] font-mono text-[#A1A1AA]">
-            <span>* Сроки монтажа и тепловые характеристики являются иллюстративными примерами расчета.</span>
+            <span>* {PANEL_CONFIG.meta.disclaimer}</span>
             <span>Заводские допуски ГОСТ 31310-2015</span>
           </div>
         </div>

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox, Html } from '@react-three/drei';
 import { easing } from 'maath';
-import { WidgetViewMode, PANEL_CONFIG } from '../../data/panelConfig';
+import { WidgetViewMode, PANEL_CONFIG, formatTemperatureC } from '../../data/panelConfig';
 import {
   GeneratedTextures,
   useProgressiveProceduralTextures,
@@ -258,6 +258,20 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const layerStructural = PANEL_CONFIG.layers[2];
   const layerAnchors = PANEL_CONFIG.layers[3];
 
+  // Числа тегов и подписей — из PANEL_CONFIG (P2-8): температуры берутся из
+  // climate, толщины — из слоёв, чтобы тег и график не разъезжались.
+  const outdoorTag = formatTemperatureC(PANEL_CONFIG.climate.outdoorC);
+  const indoorTag = formatTemperatureC(PANEL_CONFIG.climate.indoorC);
+  const totalThicknessTag = `${PANEL_CONFIG.meta.totalThicknessMm} мм`;
+  const thicknessBreakdown =
+    '(' +
+    PANEL_CONFIG.layers
+      .filter((layer) => layer.id !== 'anchors')
+      .map((layer) => layer.thickness.replace(/\s*мм$/, ''))
+      .join(' + ') +
+    ')*';
+  const r0Detail = `R₀ теплового контура: ${PANEL_CONFIG.meta.r0Value} ${PANEL_CONFIG.meta.r0Unit}*`;
+
   // In "ТЕПЛО" the layer placcards are replaced by the three temperature tags: with both
   // on screen the callouts and the tags fought for the same strip (the audit measured
   // 666 px² of text overlap at 390x844). Selecting a layer still shows its callout.
@@ -286,7 +300,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       spec: 'λ = 0.022 Вт/(м·К) • Замкнутые ячейки',
       note: 'Бесшовный энергоэффективный сердечник с плотностью >32 кг/м³. Замкнутоячеистая структура исключает водопоглощение (<1%) и усадку со временем.',
       details: [
-        'R₀ теплового контура: 9.2 (м²·°C)/Вт*',
+        r0Detail,
         'Группа горючести Г1 (самозатухающий)',
         'Стабильность геометрии при морозе',
       ],
@@ -476,8 +490,8 @@ export const PanelModel: React.FC<PanelModelProps> = ({
           <Html center distanceFactor={4.5} zIndexRange={[15, 0]} className="pointer-events-none select-none">
             <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-black/5 shadow-sm">
               <span className="text-[10px] uppercase text-[#A1A1AA]">Контур:</span>
-              <span className="font-semibold text-[#18181B]">390 мм</span>
-              <span className="text-[9px] text-[#A1A1AA]">(70 + 200 + 120)*</span>
+              <span className="font-semibold text-[#18181B]">{totalThicknessTag}</span>
+              <span className="text-[9px] text-[#A1A1AA]">{thicknessBreakdown}</span>
             </div>
           </Html>
         </group>
@@ -492,7 +506,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
               <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60 shrink-0" />
                 <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
-                <span className="font-semibold text-[#1D4ED8]">-20 °C</span>
+                <span className="font-semibold text-[#1D4ED8]">{outdoorTag}</span>
               </div>
             </Html>
           </group>
@@ -515,7 +529,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
               <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse shrink-0" />
                 <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>
-                <span className="font-semibold text-[#B45309]">+22 °C</span>
+                <span className="font-semibold text-[#B45309]">{indoorTag}</span>
               </div>
             </Html>
           </group>
