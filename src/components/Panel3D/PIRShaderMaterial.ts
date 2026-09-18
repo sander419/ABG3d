@@ -243,7 +243,8 @@ const PIRFragmentShader = /* glsl */ `
     }
 
     // B. Thermal Profile Mode: the PIR core IS the thermal barrier, so it carries
-    // the whole -20 °C -> +22 °C field (R0 = 9.2). tZ runs from the interior face
+    // the whole -20 °C -> +22 °C field (the canonical pair lives in
+    // PANEL_CONFIG.climate, R₀ — in PANEL_CONFIG.meta.r0Value). tZ runs from the interior face
     // (0.0, +22 °C) to the exterior face (1.0, -20 °C); the previous three-stop mix
     // saturated into flat paint at both ends, so here the ramp has four anchors and
     // crosses a near-white 0 °C isotherm band where the temperature actually passes 0.
@@ -313,9 +314,9 @@ export function createPIRShaderMaterial(): THREE.ShaderMaterial {
     uCavityDepth: { value: 0.65 },
     uSelected: { value: 0.0 },
     uThermal: { value: 0.0 },
-    // 0 °C crossing for a +22 °C / -20 °C pair solved linearly across the 200 mm core:
-    // 22 / (22 + 20) = 0.524. Kept as a uniform so the isotherm line can be moved
-    // when the canonical temperatures of the widget change.
+    // 0 °C crossing for a +22 °C / -20 °C pair (PANEL_CONFIG.climate) solved linearly
+    // across the 200 mm core: 22 / (22 + 20) = 0.524. Kept as a uniform so the isotherm
+    // line can be moved when the canonical temperatures of the widget change.
     uIsoPosition: { value: 0.524 },
     uBlurProgress: { value: 1.0 }, // Starts in progressive blur state, smoothly transitions to 0.0
     uLightDir: { value: new THREE.Vector3(5.0, 8.0, 6.0).normalize() },

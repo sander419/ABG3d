@@ -1,5 +1,5 @@
 import React, { useState, Suspense, useMemo, useEffect, lazy } from 'react';
-import { WidgetViewMode } from './data/panelConfig';
+import { PANEL_CONFIG, WidgetViewMode } from './data/panelConfig';
 import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
 import { readWidgetParamsFromLocation } from './lib/widgetParams';
 import { emitWidgetEvent } from './lib/widgetEvents';
@@ -62,7 +62,7 @@ export const App: React.FC = () => {
   }, [isCalcOpen, isConsultOpen, isComparisonOpen]);
 
   return (
-    <div className="h-screen h-[100dvh] w-screen overflow-hidden select-none bg-[#FBFBFB] text-[#18181B] flex flex-col relative font-sans antialiased">
+    <div className="h-screen h-[100dvh] w-screen overflow-hidden bg-[#FBFBFB] text-[#18181B] flex flex-col relative font-sans antialiased">
       {/* Background subtle architectural hair-grid */}
       <div className="absolute inset-0 gallery-grid pointer-events-none opacity-50 z-0" />
 
@@ -76,7 +76,6 @@ export const App: React.FC = () => {
           <LeftAnatomyRail
             selectedId={selectedElementId}
             onSelect={(id) => setSelectedElementId(id)}
-            currentMode={viewMode}
           />
         </div>
 
@@ -188,6 +187,15 @@ export const App: React.FC = () => {
         </div>
       </div>
 
+      {/* Единый дисклеймер виджета (P2-8): одна строка в футере. Остальные копии
+          («Иллюстративный пример» под каждой метрикой, под каждым слоем и в
+          левом рельсе) убраны — юридически ценная сноска одна, а не семь. */}
+      <footer className="shrink-0 w-full px-3 py-1 text-center border-t border-black/[0.04] bg-[#FBFBFB]/90 z-20">
+        <span className="font-mono text-[9px] text-[#A1A1AA] tracking-wider">
+          {PANEL_CONFIG.meta.disclaimer}
+        </span>
+      </footer>
+
       {/* MOBILE EXPANDABLE DRAWER (< 1024px) */}
       {mobileDrawer !== 'none' && (
         <div className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end bg-black/30 backdrop-blur-xs animate-in fade-in duration-200">
@@ -214,7 +222,6 @@ export const App: React.FC = () => {
                     setSelectedElementId(id);
                     setMobileDrawer('none');
                   }}
-                  currentMode={viewMode}
                 />
               ) : (
                 <RightMetricsRail

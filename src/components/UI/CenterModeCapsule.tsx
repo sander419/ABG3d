@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { WidgetViewMode } from '../../data/panelConfig';
+import { PANEL_CONFIG, WidgetViewMode } from '../../data/panelConfig';
+import { MODE_LABELS } from '../../lib/viewMode';
 import { Eye, Flame, BarChart2 } from 'lucide-react';
 import { ThermalUValueComparison } from './ThermalUValueComparison';
 
@@ -60,11 +61,11 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
     setShowThermalComparison((prev) => !prev);
   };
 
-  const modes: { id: WidgetViewMode; label: string; micro: string }[] = [
-    { id: 'exploded', label: 'РАЗОБРАН', micro: 'Слои' },
-    { id: 'assembled', label: 'СБОРКА', micro: '390 мм' },
-    { id: 'structure', label: 'АРМАТУРА', micro: 'Peikko' },
-    { id: 'thermal', label: 'ТЕПЛО', micro: 'R₀ 9.2' },
+  const modes: { id: WidgetViewMode; micro: string }[] = [
+    { id: 'exploded', micro: 'Слои' },
+    { id: 'assembled', micro: `${PANEL_CONFIG.meta.totalThicknessMm} мм` },
+    { id: 'structure', micro: 'Peikko' },
+    { id: 'thermal', micro: `R₀ ${PANEL_CONFIG.meta.r0Value}` },
   ];
 
   return (
@@ -99,7 +100,7 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
                     }`}
                   />
                 )}
-                <span>{m.label}</span>
+                <span>{MODE_LABELS[m.id]}</span>
                 <span
                   className={`text-[8px] tracking-widest hidden xs:inline ${
                     isActive ? 'text-[#D4D4D8]' : 'text-[#A1A1AA]'

@@ -1,5 +1,6 @@
 import React from 'react';
-import { WidgetViewMode } from '../../data/panelConfig';
+import { PANEL_CONFIG, WidgetViewMode } from '../../data/panelConfig';
+import { MODE_LABELS } from '../../lib/viewMode';
 import { ArrowRight, Compass, Sparkles, HelpCircle, FileText } from 'lucide-react';
 
 interface RightMetricsRailProps {
@@ -23,35 +24,39 @@ export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({
   is2DActive,
   selectedId,
 }) => {
+  // Тексты и метрики — только из PANEL_CONFIG (P2-8): раньше значения дублировались
+  // литералами, а «Иллюстративный пример» висел под каждой строкой (4 раза на экран).
   const metrics = [
     {
       label: 'МОНТАЖ',
-      value: '2–5 ДНЕЙ',
-      note: 'Иллюстративный пример',
+      value: PANEL_CONFIG.meta.assemblyTime,
       dotColor: 'bg-[#10B981]',
     },
     {
       label: 'ЭНЕРГИЯ',
-      value: 'КЛАСС А+ / А++',
-      note: 'Иллюстративный пример',
+      value: PANEL_CONFIG.meta.energyClass,
       dotColor: 'bg-[#3B82F6]',
     },
     {
       label: 'РЕСУРС',
-      value: '100+ ЛЕТ',
-      note: 'Иллюстративный пример',
+      value: PANEL_CONFIG.meta.serviceLife,
       dotColor: 'bg-[#8B5CF6]',
     },
     {
       label: 'R₀ КОНТУРА',
-      value: '9.2 (М²·°C)/ВТ',
-      note: 'Иллюстративный пример',
+      value: `${PANEL_CONFIG.meta.r0Value} ${PANEL_CONFIG.meta.r0Unit}`,
       dotColor: 'bg-[#F59E0B]',
     },
   ];
 
+  // «Фокус камеры» называет слой теми же словами, что рельс и 3D-колауты.
+  const selectedLayer = PANEL_CONFIG.layers.find((layer) => layer.id === selectedId);
+  const focusText = selectedLayer
+    ? `${selectedLayer.title} (${selectedLayer.thickness})`
+    : `Вся конструкция (${PANEL_CONFIG.meta.totalThicknessMm} мм)`;
+
   return (
-    <aside className="w-full h-full flex flex-col justify-between py-6 px-6 sm:px-8 select-none overflow-y-auto no-scrollbar">
+    <aside className="w-full h-full flex flex-col justify-between py-6 px-6 sm:px-8 overflow-y-auto no-scrollbar">
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -91,12 +96,9 @@ export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({
                       {m.label}
                     </span>
                   </div>
-                  <span className="font-mono text-[11px] font-semibold tracking-tight text-[#18181B]">
+                  <span className="font-mono text-[11px] font-semibold tracking-tight text-[#18181B] uppercase">
                     {m.value}
                   </span>
-                </div>
-                <div className="font-mono text-[9px] text-[#A1A1AA] uppercase tracking-wider mt-1 pl-3.5">
-                  {m.note}
                 </div>
               </div>
             ))}
@@ -110,13 +112,7 @@ export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({
               РЕЖИМ ОБЗОРА
             </span>
             <span className="font-mono text-[9px] uppercase tracking-wider text-[#18181B] font-mono">
-              {currentMode === 'exploded'
-                ? 'РАЗОБРАН'
-                : currentMode === 'assembled'
-                ? 'СБОРКА'
-                : currentMode === 'structure'
-                ? 'АРМАТУРА'
-                : 'ТЕПЛО'}
+              {MODE_LABELS[currentMode]}
             </span>
           </div>
 
@@ -125,15 +121,7 @@ export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({
               ФОКУС КАМЕРЫ:
             </span>
             <span className="text-[11px] font-medium text-[#18181B] mt-0.5 block">
-              {selectedId === 'facade'
-                ? 'Фасадная плита B35 (70 мм)'
-                : selectedId === 'insulation'
-                ? 'Бесшовный контур PIR (200 мм)'
-                : selectedId === 'structural'
-                ? 'Несущий монолит B30 (120 мм)'
-                : selectedId === 'anchors'
-                ? 'Терморазрыв Peikko PDM + петли PVL'
-                : 'Вся конструкция (390 мм)'}
+              {focusText}
             </span>
           </div>
         </div>

@@ -1,43 +1,22 @@
 import React from 'react';
-import { WidgetViewMode } from '../../data/panelConfig';
+import { PANEL_CONFIG } from '../../data/panelConfig';
 import { Layers, Link2, ShieldCheck, Activity } from 'lucide-react';
 
 interface LeftAnatomyRailProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  currentMode: WidgetViewMode;
 }
 
+/**
+ * Названия, толщины и спецификации слоёв берутся только из PANEL_CONFIG.layers
+ * (P2-8): до этого здесь жила вторая копия текстов («ФАСАД (ПРИМЕР: 70 ММ*)»),
+ * и один слой на одном экране назывался по-разному в рельсе и в 3D-колаутах.
+ */
 export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
   selectedId,
   onSelect,
 }) => {
-  const layers = [
-    {
-      id: 'facade',
-      index: '01',
-      title: 'ФАСАД (ПРИМЕР: 70 ММ*)',
-      spec: 'Заводская геометрия • Бетон B35',
-      thickness: '70 мм*',
-      detail: 'Прецизионные фаски 3 мм, морозостойкость F300, водонепроницаемость W8',
-    },
-    {
-      id: 'insulation',
-      index: '02',
-      title: 'PIR УТЕПЛИТЕЛЬ (ПРИМЕР: 200 ММ*)',
-      spec: 'Монолитный контур • λ = 0.022 Вт/(м·К)',
-      thickness: '200 мм*',
-      detail: 'Замкнутые поры, нулевое влагонакопление (<1%) и отсутствие усадки',
-    },
-    {
-      id: 'structural',
-      index: '03',
-      title: 'НЕСУЩИЙ БЕТОН (ПРИМЕР: 120–150 ММ*)',
-      spec: 'Несущая способность бетона • B30',
-      thickness: '120–150 мм*',
-      detail: 'Конструкционный монолитный остов здания с тепловой инерцией',
-    },
-  ];
+  const layers = PANEL_CONFIG.layers.filter((layer) => layer.id !== 'anchors');
 
   const peikkoHardware = [
     {
@@ -55,7 +34,7 @@ export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
   ];
 
   return (
-    <aside className="w-full h-full flex flex-col justify-between py-6 px-6 sm:px-8 select-none overflow-y-auto no-scrollbar">
+    <aside className="w-full h-full flex flex-col justify-between py-6 px-6 sm:px-8 overflow-y-auto no-scrollbar">
       {/* Brand & Studio Sub-Header */}
       <div className="space-y-6">
         <div>
@@ -78,7 +57,7 @@ export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
           <div className="flex items-center justify-between">
             <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A1A1AA] flex items-center gap-1.5">
               <Layers className="w-3 h-3 text-[#71717A]" />
-              ПИРОГ СТЕНЫ • 390 ММ
+              ПИРОГ СТЕНЫ • {PANEL_CONFIG.meta.totalThicknessMm} ММ
             </span>
             <span className="font-mono text-[9px] text-[#A1A1AA]">СНАРУЖИ → ВНУТРЬ</span>
           </div>
@@ -122,10 +101,6 @@ export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
                   <p className="text-[11px] text-[#52525B] leading-tight mt-1">
                     {layer.spec}
                   </p>
-
-                  <div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider mt-1">
-                    Иллюстративный пример: {layer.thickness}
-                  </div>
                 </div>
               );
             })}
@@ -186,11 +161,6 @@ export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
             })}
           </div>
         </div>
-      </div>
-
-      {/* Engineering disclaimer note */}
-      <div className="pt-4 border-t border-black/[0.04] text-[9px] font-mono text-[#A1A1AA] leading-relaxed">
-        * Все размеры толщин и спецификации являются иллюстративными примерами заводской конструкции ЖБИ.
       </div>
     </aside>
   );

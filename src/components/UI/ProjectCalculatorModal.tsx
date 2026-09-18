@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Check, ArrowRight, AlertCircle, Loader2, RotateCcw } from 'lucide-react';
 import { ModalShell } from './ModalShell';
+import { PANEL_CONFIG } from '../../data/panelConfig';
 import { useLeadSubmit } from '../../hooks/useLeadSubmit';
 
 interface ProjectCalculatorModalProps {
@@ -85,7 +86,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
           Расчет домокомплекта ЖБИ
         </h2>
         <p className="text-xs text-[#71717A]">
-          Иллюстративный пример подбора железобетонных сэндвич-панелей 390 мм
+          Предварительный подбор железобетонных сэндвич-панелей {PANEL_CONFIG.meta.totalThicknessMm} мм
         </p>
       </div>
 
@@ -203,10 +204,10 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
                 R₀ ТЕПЛО
               </span>
               <span className="font-mono text-sm font-semibold text-[#10B981]">
-                9.2
+                {PANEL_CONFIG.meta.r0Value}
               </span>
               <span className="text-[8px] font-mono text-[#A1A1AA] block mt-0.5">
-                (м²·°C)/Вт
+                {PANEL_CONFIG.meta.r0Unit}
               </span>
             </div>
           </div>
@@ -284,7 +285,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
           </button>
 
           <div className="text-[9px] font-mono text-[#A1A1AA] text-center">
-            * Все числовые значения толщин, сроков и энергоэффективности являются иллюстративными примерами конструкции/расчета.
+            * {PANEL_CONFIG.meta.disclaimer}
           </div>
         </form>
       )}

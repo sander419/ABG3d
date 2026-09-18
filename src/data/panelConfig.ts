@@ -1,3 +1,33 @@
+/**
+ * ЕДИНЫЙ ИСТОЧНИК текстов, метрик и канонических чисел виджета (P2-8).
+ *
+ * UI-компоненты (Header, LeftAnatomyRail, RightMetricsRail, PanelModel,
+ * CenterModeCapsule, ProjectCalculatorModal, ThermalUValueComparison) читают
+ * значения только отсюда. Формулировки названий слоёв и температуру для
+ * иллюстрации финально утверждает ABG — правка делается в одном месте, здесь.
+ *
+ * Проверки-сторожа: tests/config.test.ts.
+ */
+
+/** R₀ теплового контура панели, (м²·°C)/Вт — единственный литерал во всём src. */
+const R0_VALUE = 9.2;
+const R0_UNIT = '(м²·°C)/Вт';
+
+/** Канонические температуры иллюстративного теплотехнического расчёта. */
+const CLIMATE = {
+  outdoorC: -20, // на улице
+  indoorC: 22, // в интерьере
+  deltaTC: 42, // indoorC - outdoorC; на этот перепад считаются теплопотери
+} as const;
+
+/** Единственная строка-дисклеймер: футер виджета + сноски в открытых модалках. */
+const DISCLAIMER =
+  'Толщины, сроки, R₀ и тепловые характеристики — иллюстративный пример; точные значения — по проекту ABG.';
+
+/** '−20 °C' / '+22 °C' — единый формат температурных тегов. */
+export const formatTemperatureC = (value: number): string =>
+  `${value > 0 ? '+' : ''}${value} °C`;
+
 export type WidgetViewMode = 'assembled' | 'exploded' | 'structure' | 'thermal';
 
 export interface LayerState {
@@ -33,12 +63,17 @@ export const PANEL_CONFIG = {
     series: 'ARCHITECTURAL RESIDENCE 390',
     title: 'Трёхслойная ограждающая панель капитального дома',
     totalThicknessMm: 390,
-    r0Value: '9.2',
-    r0Unit: '(м²·°C)/Вт',
+    r0Value: R0_VALUE,
+    r0Unit: R0_UNIT,
     assemblyTime: '2–5 дней',
+    energyClass: 'КЛАСС А+ / А++',
+    serviceLife: '100+ ЛЕТ',
     acoustics: '54 дБ',
     warranty: '50 лет гарантии',
+    disclaimer: DISCLAIMER,
   },
+
+  climate: CLIMATE,
 
   layers: [
     {
@@ -104,7 +139,7 @@ export const PANEL_CONFIG = {
     },
     {
       parameter: 'Тепловой комфорт',
-      metric: 'R₀ = 9.2 vs 2.8',
+      metric: `R₀ = ${R0_VALUE} vs 2.8`,
       prefab: {
         title: 'Бесшовный контур PIR 200 мм',
         detail: 'Заводское прессование утеплителя и композитные связи без металла исключают продувание. Сопротивление теплопередаче почти втрое выше нормы.',
