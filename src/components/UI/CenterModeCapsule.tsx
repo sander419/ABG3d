@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { WidgetViewMode } from '../../data/panelConfig';
 import { Eye, Flame, BarChart2 } from 'lucide-react';
 import { ThermalUValueComparison } from './ThermalUValueComparison';
@@ -22,6 +22,24 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
 }) => {
   const [showThermalComparison, setShowThermalComparison] = useState(false);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Таймер скрытия не должен переживать размонтирование и переключение режима:
+  // иначе popover может «залипнуть» открытым в другом режиме, а setState
+  // срабатывает уже после unmount.
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentMode !== 'thermal' && showThermalComparison) {
+      setShowThermalComparison(false);
+    }
+  }, [currentMode, showThermalComparison]);
 
   const handleThermalMouseEnter = () => {
     if (hideTimerRef.current) {
@@ -67,6 +85,7 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
               <button
                 id={`mode-${m.id}-btn`}
                 onClick={() => onModeChange(m.id)}
+                aria-pressed={isActive}
                 className={`px-3 py-1.5 rounded-full font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.18em] transition-all duration-200 flex items-center gap-1.5 cursor-pointer touch-manipulation whitespace-nowrap ${
                   isActive
                     ? 'bg-[#18181B] text-white font-semibold shadow-xs'
