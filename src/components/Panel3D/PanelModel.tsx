@@ -153,6 +153,23 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const { size: viewportSize } = useThree();
   const thermalTagX = viewportSize.width < 640 ? 0.9 : 1.25;
 
+  // Единая политика «один голос за раз» на узкой сцене (см. docs/layout-overlap-fixes.md):
+  //  * < 1024 px поповер хотспота не рендерится — те же данные показывает LayerDetailCard;
+  //  * при открытой панели «Сечение» на узкой сцене температурные теги скрываются
+  //    ровно так же, как это уже делает SwissCallout для плашек слоёв: панель среза —
+  //    фокусный режим, и её текст не должен пересекаться с аннотациями на канвасе.
+  const compactStage = viewportSize.width < 1024;
+  const [sectionFocusNarrow, setSectionFocusNarrow] = useState(false);
+  useEffect(() => {
+    const tick = () =>
+      setSectionFocusNarrow(
+        !!document.getElementById('cross-section-panel-dock') && viewportSize.width < 1280
+      );
+    tick();
+    const id = window.setInterval(tick, 400);
+    return () => window.clearInterval(id);
+  }, [viewportSize.width]);
+
   // Zero-jank maath dampening inside useFrame
   useFrame((state, delta) => {
     // 1. Damp structural layer position
@@ -414,6 +431,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       <InvisibleHotspot
         position={[-0.6, 0.7, (targetFacadeZ + targetStructuralZ) / 2]}
         data={hotspotAnnotations.pdm}
+        allowPopover={!compactStage}
         isSelected={activeHotspotId === 'pdm' || selectedId === 'anchors'}
         onSelect={() => {
           setActiveHotspotId('pdm');
@@ -426,6 +444,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       <InvisibleHotspot
         position={[0.45, -0.2, targetPIRZ + dPIR / 2 + 0.005]}
         data={hotspotAnnotations.pir}
+        allowPopover={!compactStage}
         isSelected={activeHotspotId === 'pir' || selectedId === 'insulation'}
         onSelect={() => {
           setActiveHotspotId('pir');
@@ -438,6 +457,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       <InvisibleHotspot
         position={[-1.02, 0.0, targetStructuralZ]}
         data={hotspotAnnotations.pvl}
+        allowPopover={!compactStage}
         isSelected={activeHotspotId === 'pvl'}
         onSelect={() => {
           setActiveHotspotId('pvl');
@@ -446,11 +466,15 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         onClose={() => setActiveHotspotId(null)}
       />
 
-      {/* 6. MINIMALIST HAIRLINE DIMENSION TICKS (When Assembled) */}
-      {showDimensions && k < 0.15 && !isThermal && (
-        <group position={[1.12, -1.2, 0]}>
+      {/* 6. MINIMALIST HAIRLINE DIMENSION TICKS (When Assembled)
+          Плашка «Контур» живёт внизу по центру сцены: правый нижний угол занят
+          доками (контролы сцены), левый — пилюлей сравнения (xl), снизу на <1024 —
+          мобильный бар. Раньше плашка висела справа и на 1600 упиралась прямо
+          в «Сечение / 3D Обзор». */}
+      {showDimensions && k < 0.15 && !isThermal && !selectedId && (
+        <group position={[0, -1.42, 0]}>
           <Html center distanceFactor={4.5} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-            <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-black/5 shadow-sm">
+            <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-black/5 shadow-sm">
               <span className="text-[10px] uppercase text-[#A1A1AA]">Контур:</span>
               <span className="font-semibold text-[#18181B]">390 мм</span>
               <span className="text-[9px] text-[#A1A1AA]">(70 + 200 + 120)*</span>
@@ -460,7 +484,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       )}
 
       {/* 6. THERMAL RESTRAINED INFOGRAPHIC */}
-      {isThermal && (
+      {isThermal && !sectionFocusNarrow && (
         <group>
           {/* Outdoor Frost Tag - attached to top-left of the Facade layer */}
           <group position={[-thermalTagX, 1.3, targetFacadeZ + dFacade / 2]}>

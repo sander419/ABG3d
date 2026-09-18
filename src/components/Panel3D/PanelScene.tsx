@@ -228,6 +228,24 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
 
   const [resetKey, setResetKey] = useState(0);
 
+  // Ширина самой сцены (канваса), а не окна: на 1024–1279 px оба рейла уже занимают
+  // ~620 px, сцена сжимается до ~400 px, и HUD материалов начинал наезжать на
+  // температурные теги. Ширина меряется ResizeObserver'ом на корневом диве.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageW, setStageW] = useState(0);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    setStageW(Math.round(el.getBoundingClientRect().width));
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (typeof w === 'number') setStageW(Math.round(w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const resetCamera = () => {
     if (controlsRef.current) {
       controlsRef.current.reset();
@@ -237,6 +255,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
 
   return (
     <div
+      ref={stageRef}
       className="relative w-full h-full select-none overflow-hidden bg-[#FBFBFB]"
       style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
     >
@@ -487,7 +506,11 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           Own zone at the top-left of the stage: the bottom strip belongs to the
           comparison pill / mobile action bar / stage controls. */}
       <div className={`absolute top-28 sm:top-32 left-3 sm:left-4 z-20 flex-col items-start gap-2 max-w-[calc(100%-1.5rem)] ${
-        clippingState.enabled ? 'hidden xl:flex' : 'flex'
+        mode === 'thermal' && stageW > 0 && stageW < 640
+          ? 'hidden'
+          : clippingState.enabled
+          ? 'hidden xl:flex'
+          : 'flex'
       }`}>
         <div
           id="progressive-texture-hud"

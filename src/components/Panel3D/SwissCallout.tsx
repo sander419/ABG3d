@@ -58,7 +58,7 @@ const overlapArea = (a: Rect, b: Rect) => {
 
 const measureObstacles = (): Rect | null => {
   const parts: Rect[] = [];
-  for (const id of ['cross-section-panel-dock', 'stage-controls-dock']) {
+  for (const id of ['cross-section-panel-dock', 'stage-controls-dock', 'layer-detail-dock']) {
     const el = document.getElementById(id);
     if (!el) continue;
     const r = el.getBoundingClientRect();
@@ -113,6 +113,7 @@ const resolveLayout = () => {
     const maxTop = Math.max(minTop, stage.bottom - EDGE_PAD - item.h);
     const left = Math.min(Math.max(side === 'right' ? item.leftRight : item.leftLeft, minLeft), maxLeft);
     let top = Math.min(Math.max(item.wantTop, minTop), maxTop);
+    let itemHidden = hidden;
 
     // Разведение: уступаем по вертикали панели среза и уже поставленным плашкам
     for (let guard = 0; guard < 6; guard += 1) {
@@ -128,8 +129,16 @@ const resolveLayout = () => {
       top = next;
     }
 
+    // Ни одна позиция не влезла без наложения (узкая сцена + открытая карточка
+    // выбранного слоя): плашку прячем — текст, лежащий на другом тексте, хуже
+    // отсутствующей подписи; те же данные дублирует карточка слоя.
+    if (!itemHidden) {
+      const mine: Rect = { left, top, right: left + item.w, bottom: top + item.h };
+      if ([...obstacles, ...placed].some((o) => overlapArea(mine, o) > 60)) itemHidden = true;
+    }
+
     placed.push({ left, top, right: left + item.w, bottom: top + item.h });
-    results.push([item.id, { side, left, top, hidden }]);
+    results.push([item.id, { side, left, top, hidden: itemHidden }]);
   }
 
   for (const [id, placement] of results) {

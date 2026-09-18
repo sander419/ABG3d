@@ -17,6 +17,13 @@ interface InvisibleHotspotProps {
   isSelected: boolean;
   onSelect: (id: string) => void;
   onClose: () => void;
+  /**
+   * На узкой сцене (< 1024 px) инженерный поповер не рендерится: он шириной
+   * 288–320 px, привязан к кольцу хотспота и потому вылезал за вьюпорт и накрывал
+   * текстом плашки слоёв. Те же данные там показывает LayerDetailCard —
+   * центрированная карточка в границах сцены.
+   */
+  allowPopover?: boolean;
 }
 
 export const InvisibleHotspot: React.FC<InvisibleHotspotProps> = ({
@@ -25,6 +32,7 @@ export const InvisibleHotspot: React.FC<InvisibleHotspotProps> = ({
   isSelected,
   onSelect,
   onClose,
+  allowPopover = true,
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -83,7 +91,7 @@ export const InvisibleHotspot: React.FC<InvisibleHotspotProps> = ({
         </button>
 
         {/* Minimalist Swiss Engineering Pop-up (Invisible UI Pop-up) */}
-        {isSelected && (
+        {isSelected && allowPopover && (
           <div
             onClick={(e) => e.stopPropagation()}
             className="absolute left-6 -top-12 z-50 w-72 sm:w-80 p-4 rounded-xl bg-white/95 backdrop-blur-xl border border-black/10 shadow-[0_16px_40px_rgba(0,0,0,0.08)] animate-in fade-in zoom-in-95 duration-200"
