@@ -134,13 +134,66 @@ export function buildLeadPayload(
 
 export const RUNTIME_ENDPOINT_KEY = 'ABG3D_LEADS_ENDPOINT';
 
-/** Порядок: рантайм-настройка (window) → переменная сборки Vite → ничего. */
+/**
+ * Ключ в query-строке самого виджета: `?leads=<адрес приёма заявок>`.
+ *
+ * Зачем: при встраивании через `<iframe>` окно родительской страницы внутри iframe
+ * не видно (same-origin policy), поэтому `window.ABG3D_LEADS_ENDPOINT` до виджета
+ * не доедет — адрес приёма передаётся в URL фрейма.
+ */
+export const ENDPOINT_QUERY_KEY = 'leads';
+
+const MAX_ENDPOINT_LENGTH = 300;
+
+/**
+ * Пропускает только http(s)-адрес. Отсекает `javascript:`, `data:`, пробелы и кавычки —
+ * адрес из URL подставляется в `fetch`, и мусор в query-строке не должен превращаться в запрос.
+ */
+export function sanitizeEndpoint(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_ENDPOINT_LENGTH) return null;
+  if (/[\s"'<>\\]/.test(trimmed)) return null;
+
+  const lower = trimmed.toLowerCase();
+  const allowed =
+    lower.startsWith('https://') ||
+    lower.startsWith('http://localhost') ||
+    lower.startsWith('http://127.0.0.1');
+  return allowed ? trimmed : null;
+}
+
+/** Читает адрес приёма из query-строки (`?leads=`, синоним `?endpoint=`). */
+export function readEndpointFromQuery(search: string): string | null {
+  try {
+    const qs = new URLSearchParams(search ?? '');
+    return sanitizeEndpoint(qs.get(ENDPOINT_QUERY_KEY) ?? qs.get('endpoint'));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Порядок разрешения адреса приёма заявок:
+ *   1) явная настройка (`options.endpoint`, `window.ABG3D_LEADS_ENDPOINT`) — тесты и
+ *      скриптовое встраивание;
+ *   2) `?leads=<адрес>` в URL виджета — рабочий способ для iframe-встраивания;
+ *   3) `VITE_LEADS_ENDPOINT` на этапе сборки;
+ *   4) ничего → форма честно говорит «канал заявок не настроен».
+ */
 export function resolveLeadEndpoint(scope?: unknown): string | null {
   const fromScope = readEndpointFrom(scope);
   if (fromScope) return fromScope;
 
   const fromWindow = readEndpointFrom(typeof window !== 'undefined' ? window : undefined);
   if (fromWindow) return fromWindow;
+
+  const fromQuery =
+    typeof window !== 'undefined' && window.location
+      ? readEndpointFromQuery(window.location.search)
+      : null;
+  if (fromQuery) return fromQuery;
 
   const fromEnv = readEnvEndpoint();
   if (fromEnv) return fromEnv;

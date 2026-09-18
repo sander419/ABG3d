@@ -19,6 +19,7 @@ import {
   submitLead,
   validateContact,
 } from '../lib/leads';
+import { emitWidgetEvent } from '../lib/widgetEvents';
 
 export type LeadFormStatus = 'idle' | 'sending' | 'success' | 'error';
 
@@ -112,12 +113,23 @@ export function useLeadSubmit(
       if (result.status === 'success') {
         statusRef.current = 'success';
         setStatus('success');
+        // Событие для страницы-хоста: без контакта и текста заявки (только факт и статус).
+        emitWidgetEvent('abg3d:lead', {
+          kind,
+          status: 'success',
+          httpStatus: result.httpStatus,
+        });
         return result;
       }
 
       statusRef.current = 'error';
       setStatus('error');
       setFailureMessage(result.message);
+      emitWidgetEvent('abg3d:lead', {
+        kind,
+        status: result.status,
+        reason: result.reason,
+      });
       if (result.status === 'unconfigured') {
         setChannelUnavailable(true);
         warnChannelNotConfigured();

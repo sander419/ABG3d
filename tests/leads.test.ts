@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import {
   DEFAULT_TIMEOUT_MS,
+  ENDPOINT_QUERY_KEY,
   MIN_FILL_MS,
   buildLeadPayload,
   isLikelyBot,
   normalizeContact,
+  readEndpointFromQuery,
   resolveLeadEndpoint,
+  sanitizeEndpoint,
   submitLead,
   validateContact,
 } from '../src/lib/leads';
@@ -209,5 +212,50 @@ describe('submitLead', () => {
 
   test('дефолтный таймаут разумный', () => {
     expect(DEFAULT_TIMEOUT_MS).toBeLessThanOrEqual(20_000);
+  });
+});
+
+describe('адрес приёма заявок из URL виджета (?leads=)', () => {
+  test('ключ и синоним читаются из query-строки', () => {
+    expect(ENDPOINT_QUERY_KEY).toBe('leads');
+    expect(readEndpointFromQuery('?leads=https://api.abg.ru/lead')).toBe('https://api.abg.ru/lead');
+    expect(readEndpointFromQuery('?endpoint=https://hook.abg.ru/x')).toBe('https://hook.abg.ru/x');
+  });
+
+  test('URL-кодирование и мусор в query-строке', () => {
+    expect(readEndpointFromQuery('?leads=https%3A%2F%2Fapi.abg.ru%2Flead')).toBe('https://api.abg.ru/lead');
+    expect(readEndpointFromQuery('?v=thermal2')).toBeNull();
+    expect(readEndpointFromQuery('')).toBeNull();
+  });
+
+  test('пропускает только http(s): javascript:, data:, ftp, пробелы — мимо', () => {
+    expect(sanitizeEndpoint('https://api.abg.ru/lead')).toBe('https://api.abg.ru/lead');
+    expect(sanitizeEndpoint('  https://api.abg.ru/lead  ')).toBe('https://api.abg.ru/lead');
+    expect(sanitizeEndpoint('http://localhost:8899/lead')).toBe('http://localhost:8899/lead');
+    expect(readEndpointFromQuery('?leads=javascript:alert(1)')).toBeNull();
+    expect(readEndpointFromQuery('?leads=data:text/html,x')).toBeNull();
+    expect(sanitizeEndpoint('ftp://abg.ru/lead')).toBeNull();
+    expect(sanitizeEndpoint('https://api.abg.ru/le ad')).toBeNull();
+    expect(sanitizeEndpoint(`https://abg.ru/${'x'.repeat(400)}`)).toBeNull();
+    expect(sanitizeEndpoint(undefined)).toBeNull();
+    expect(sanitizeEndpoint(42)).toBeNull();
+  });
+
+  test('приоритет: window.ABG3D_LEADS_ENDPOINT → ?leads= → сборка', () => {
+    const g = globalThis as unknown as { window?: unknown };
+    const previousWindow = g.window;
+    try {
+      g.window = { location: { search: '?leads=https://from-query.abg.ru/lead' } };
+      expect(resolveLeadEndpoint({})).toBe('https://from-query.abg.ru/lead');
+
+      g.window = {
+        ABG3D_LEADS_ENDPOINT: 'https://from-window.abg.ru/lead',
+        location: { search: '?leads=https://from-query.abg.ru/lead' },
+      };
+      expect(resolveLeadEndpoint({})).toBe('https://from-window.abg.ru/lead');
+    } finally {
+      if (previousWindow === undefined) delete g.window;
+      else g.window = previousWindow;
+    }
   });
 });

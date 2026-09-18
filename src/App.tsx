@@ -1,7 +1,8 @@
-import React, { useState, Suspense, useMemo, lazy } from 'react';
+import React, { useState, Suspense, useMemo, useEffect, lazy } from 'react';
 import { WidgetViewMode } from './data/panelConfig';
 import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
 import { readWidgetParamsFromLocation } from './lib/widgetParams';
+import { emitWidgetEvent } from './lib/widgetEvents';
 import { Header } from './components/UI/Header';
 import { PanelSceneSkeleton } from './components/Panel3D/PanelSceneSkeleton';
 import { CenterModeCapsule } from './components/UI/CenterModeCapsule';
@@ -47,6 +48,18 @@ export const App: React.FC = () => {
     setScrubValue(patch.scrubValue);
     if (patch.clearSelection) setSelectedElementId(null);
   };
+
+  // Мост для страницы-хоста (iframe-встраивание на сайт ABG): режим и модалки уходят
+  // наружу через postMessage. Контракт — src/lib/widgetEvents.ts, пример приёмника —
+  // public/embed-demo.html. Никаких ПДн в событиях нет.
+  useEffect(() => {
+    emitWidgetEvent('abg3d:mode', { mode: viewMode });
+  }, [viewMode]);
+
+  useEffect(() => {
+    const overlay = isCalcOpen ? 'calc' : isConsultOpen ? 'consult' : isComparisonOpen ? 'compare' : null;
+    emitWidgetEvent('abg3d:overlay', { overlay, open: overlay !== null });
+  }, [isCalcOpen, isConsultOpen, isComparisonOpen]);
 
   return (
     <div className="h-screen h-[100dvh] w-screen overflow-hidden select-none bg-[#FBFBFB] text-[#18181B] flex flex-col relative font-sans antialiased">
