@@ -194,6 +194,9 @@ push в main  →  cron на VPS (каждые 5 минут)  →  /root/abg3d/d
 
 ### nginx (`/etc/nginx/sites-available/abg`)
 
+Копия прод-конфига — `deploy/nginx-abg.conf` в репозитории (источник истины — сервер:
+certbot правит файл сам, поэтому правки синхронизируем руками).
+
 | Путь | Заголовки |
 |---|---|
 | `/index.html` (`=`) | `Cache-Control: no-store, must-revalidate`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: frame-ancestors …` |
