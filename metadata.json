@@ -1,6 +1,0 @@
-{
-  "name": "ABG PrefabDOM - 3D Анатомия ЖБИ Панели",
-  "description": "Интерактивный 3D-виджет трёхслойной железобетонной prefab-панели: слои, терморазрывы Peikko, тепловой профиль и сравнение с газобетоном.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

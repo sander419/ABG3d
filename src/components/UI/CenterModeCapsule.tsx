@@ -145,8 +145,12 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
         </button>
       </div>
 
-      {/* Floating Thermal U-Value Comparison Popover (Recharts Data Visualization) */}
-      {showThermalComparison && (
+      {/* Floating Thermal U-Value Comparison Popover (Recharts Data Visualization).
+          График монтируем только в режиме ТЕПЛО: карточка всё равно закрывается
+          вне него (см. useEffect выше), а речартс-чанк грузится по требованию —
+          без этой проверки наведение на «ТЕПЛО» из другого режима качало 548 КБ
+          (147 КБ gzip) ради поповера, который тут же исчезал. */}
+      {showThermalComparison && currentMode === 'thermal' && (
         <div
           className="pointer-events-auto mt-1 z-50 animate-in fade-in zoom-in-95 duration-200"
           onMouseEnter={handleThermalMouseEnter}

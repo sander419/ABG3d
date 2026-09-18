@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>ABG PrefabDOM — демо встраивания (iframe)</title>
+    <meta name="description" content="Живой пример встраивания 3D-виджета ABG в iframe: параметры URL, приём событий виджета, готовый сниппет." />
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #fbfbfb;
+        color: #18181b;
+        font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      header {
+        padding: 28px 24px 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      .kicker {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #71717a;
+      }
+      h1 { font-size: 22px; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.01em; }
+      p.lead { margin: 0; color: #52525b; max-width: 78ch; }
+      main { padding: 20px 24px 48px; display: grid; gap: 20px; }
+      .panel {
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .panel > h2 {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #71717a;
+        margin: 0;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .panel-body { padding: 16px; }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: flex-end;
+      }
+      label { display: block; }
+      label span {
+        display: block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #71717a;
+        margin-bottom: 6px;
+      }
+      select, input, button {
+        font: inherit;
+        padding: 8px 10px;
+        border: 1px solid rgba(0, 0, 0, 0.14);
+        border-radius: 8px;
+        background: #fff;
+        color: inherit;
+        min-width: 150px;
+      }
+      input.wide { min-width: 340px; }
+      button { cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+      button.primary { background: #18181b; color: #fff; border-color: #18181b; }
+      button:hover { background: #f4f4f5; }
+      button.primary:hover { background: #27272a; }
+      code, pre, .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+      pre {
+        margin: 0;
+        padding: 14px 16px;
+        background: #18181b;
+        color: #e4e4e7;
+        border-radius: 10px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      #stage { width: 100%; height: 620px; border: 0; display: block; background: #fbfbfb; }
+      #events {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        border-radius: 10px;
+      }
+      .event {
+        padding: 9px 12px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+      .event:last-child { border-bottom: 0; }
+      .event .t { color: #a1a1aa; flex: 0 0 72px; }
+      .event .type {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+      }
+      .event .type.lead { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+      .hint { color: #71717a; margin: 10px 0 0; }
+      .grid-2 { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr); }
+      @media (max-width: 1100px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); vertical-align: top; }
+      th { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #71717a; font-weight: 500; }
+      a { color: #18181b; }
+      .warn {
+        padding: 12px 14px;
+        border: 1px solid #fde68a;
+        background: #fffbeb;
+        border-radius: 10px;
+        color: #78350f;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="kicker">ABG PrefabDOM · встраивание</div>
+      <h1>Демо встраивания 3D-виджета в iframe</h1>
+      <p class="lead">
+        Та же страница, что описана в README: виджет крутится внутри фрейма, страница-хост не
+        видит его изнутри (same-origin policy) и общается с ним параметрами URL и
+        <code>postMessage</code>-событиями. Переключайте режим/модалку слева — в логе справа
+        появляются события виджета, как их увидит сайт ABG.
+      </p>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Параметры встраивания</h2>
+        <div class="panel-body">
+          <div class="controls">
+            <label>
+              <span>Режим (?v=)</span>
+              <select id="mode">
+                <option value="">по умолчанию (разобранный)</option>
+                <option value="exploded">exploded — разобранный</option>
+                <option value="assembled">assembled — сборка</option>
+                <option value="structure">structure — арматура Peikko</option>
+                <option value="thermal2">thermal2 — тепло</option>
+              </select>
+            </label>
+            <label>
+              <span>Модалка (?open=)</span>
+              <select id="overlay">
+                <option value="">не открывать</option>
+                <option value="calc">calc — калькулятор</option>
+                <option value="consult">consult — инженер</option>
+                <option value="compare">compare — сравнение</option>
+              </select>
+            </label>
+            <label>
+              <span>Адрес приёма заявок (?leads=)</span>
+              <input id="leads" class="wide" type="url" placeholder="https://abgtz.com/api/leads (пусто = канал не настроен)" />
+            </label>
+            <button class="primary" id="apply">Применить</button>
+            <button id="copy">Скопировать сниппет</button>
+          </div>
+          <p class="hint">
+            Текущий URL фрейма: <span class="mono" id="url"></span>
+          </p>
+        </div>
+      </section>
+
+      <div class="grid-2">
+        <section class="panel">
+          <h2><span>Живой фрейм</span><span class="mono" id="size">100% × 620</span></h2>
+          <iframe
+            id="stage"
+            title="ABG — 3D-виджет ЖБИ-панели"
+            loading="lazy"
+            allow="fullscreen"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </section>
+
+        <section class="panel">
+          <h2>
+            <span>События виджета (postMessage)</span>
+            <button id="clear">Очистить</button>
+          </h2>
+          <div class="panel-body">
+            <div id="events"><div class="event"><span class="t">—</span><span>ждём события…</span></div></div>
+            <p class="hint">
+              Приёмник обязан проверять <code>e.data.source === 'abg3d-widget'</code>: сообщения
+              шлют и другие скрипты на странице. Персональных данных в событиях нет.
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Готовый сниппет</h2>
+        <div class="panel-body">
+          <pre id="snippet"></pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Что важно помнить при встраивании</h2>
+        <div class="panel-body">
+          <div class="warn">
+            <strong>frame-ancestors.</strong> Встраивать виджет разрешено только доменам из
+            белого списка nginx (<code>'self'</code>, <code>abgtz.com</code>,
+            <code>hiborg-space.ru</code> и их поддомены). Чужой домен получит пустой фрейм и
+            ошибку <span class="mono">Refused to frame …</span> в консоли браузера. Новый домен
+            заказчика — одна строка в <code>/etc/nginx/sites-available/abg</code> + reload.
+          </div>
+          <table>
+            <thead>
+              <tr><th>Параметр</th><th>Значения</th><th>Зачем</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">?v= / ?mode=</td><td class="mono">exploded · assembled · structure · thermal (+ thermal2)</td><td>стартовый режим 3D-сцены</td></tr>
+              <tr><td class="mono">?open=</td><td class="mono">calc · consult · compare</td><td>открыть модалку сразу после загрузки</td></tr>
+              <tr><td class="mono">?leads=</td><td class="mono">https://…</td><td>адрес приёма заявок: внутри iframe <span class="mono">window.ABG3D_LEADS_ENDPOINT</span> родителя виджету не виден</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">
+            Тело заявки, анти-спам и требования к серверу приёма — в
+            <code>README.md</code>, раздел «Адрес приёма заявок».
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var WIDGET_SOURCE = 'abg3d-widget';
+        var stage = document.getElementById('stage');
+        var eventsBox = document.getElementById('events');
+        var urlLine = document.getElementById('url');
+        var snippet = document.getElementById('snippet');
+        var modeSel = document.getElementById('mode');
+        var overlaySel = document.getElementById('overlay');
+        var leadsInput = document.getElementById('leads');
+        var firstEvent = true;
+
+        // Виджет и эта страница живут на одном домене → корень origin'а это и есть виджет.
+        var widgetBase = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+
+        function buildUrl() {
+          var params = [];
+          if (modeSel.value) params.push('v=' + encodeURIComponent(modeSel.value));
+          if (overlaySel.value) params.push('open=' + encodeURIComponent(overlaySel.value));
+          if (leadsInput.value.trim()) params.push('leads=' + encodeURIComponent(leadsInput.value.trim()));
+          return widgetBase + (params.length ? '?' + params.join('&') : '');
+        }
+
+        function snippetFor(url) {
+          return '<iframe\n' +
+            '  src="' + url + '"\n' +
+            '  title="ABG — 3D-анатомия ЖБИ-панели"\n' +
+            '  width="100%"\n' +
+            '  height="640"\n' +
+            '  style="border:0;border-radius:12px;overflow:hidden"\n' +
+            '  loading="lazy"\n' +
+            '  allow="fullscreen"\n' +
+            '  referrerpolicy="no-referrer-when-downgrade"\n' +
+            '></iframe>';
+        }
+
+        function apply() {
+          var url = buildUrl();
+          stage.src = url;
+          urlLine.textContent = url;
+          snippet.textContent = snippetFor(url);
+        }
+
+        function stamp() {
+          var d = new Date();
+          return d.toTimeString().slice(0, 8);
+        }
+
+        function logEvent(type, payload) {
+          if (firstEvent) { eventsBox.innerHTML = ''; firstEvent = false; }
+          var row = document.createElement('div');
+          row.className = 'event';
+
+          var time = document.createElement('span');
+          time.className = 't';
+          time.textContent = stamp();
+
+          var badge = document.createElement('span');
+          badge.className = 'type' + (type === 'abg3d:lead' ? ' lead' : '');
+          badge.textContent = type;
+
+          var body = document.createElement('span');
+          body.className = 'mono';
+          body.textContent = JSON.stringify(payload);
+
+          row.appendChild(time);
+          row.appendChild(badge);
+          row.appendChild(body);
+          eventsBox.appendChild(row);
+          eventsBox.scrollTop = eventsBox.scrollHeight;
+        }
+
+        // Приём событий виджета: фильтр по source, дальше — что угодно (аналитика сайта).
+        window.addEventListener('message', function (e) {
+          var data = e.data;
+          if (!data || typeof data !== 'object' || data.source !== WIDGET_SOURCE) return;
+          logEvent(String(data.type), data.payload || {});
+        });
+
+        document.getElementById('apply').addEventListener('click', apply);
+        document.getElementById('clear').addEventListener('click', function () {
+          eventsBox.innerHTML = '<div class="event"><span class="t">—</span><span>ждём события…</span></div>';
+          firstEvent = true;
+        });
+        document.getElementById('copy').addEventListener('click', function () {
+          var text = snippet.textContent;
+          var done = function () { logEvent('snippet', { copied: true }); };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, done);
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (err) { /* clipboard недоступен */ }
+            document.body.removeChild(ta);
+            done();
+          }
+        });
+
+        apply();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,9 +1,9 @@
-import React, { useState, Suspense, useMemo } from 'react';
+import React, { useState, Suspense, useMemo, useEffect, lazy } from 'react';
 import { WidgetViewMode } from './data/panelConfig';
 import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
 import { readWidgetParamsFromLocation } from './lib/widgetParams';
+import { emitWidgetEvent } from './lib/widgetEvents';
 import { Header } from './components/UI/Header';
-import { PanelScene } from './components/Panel3D/PanelScene';
 import { PanelSceneSkeleton } from './components/Panel3D/PanelSceneSkeleton';
 import { CenterModeCapsule } from './components/UI/CenterModeCapsule';
 import { LeftAnatomyRail } from './components/UI/LeftAnatomyRail';
@@ -14,6 +14,12 @@ import { ProjectCalculatorModal } from './components/UI/ProjectCalculatorModal';
 import { EngineerConsultModal } from './components/UI/EngineerConsultModal';
 import { ComparisonDrawer } from './components/UI/ComparisonDrawer';
 import { Layers, Sliders, X, FileText, Calculator, HelpCircle, Columns } from 'lucide-react';
+
+// 3D-сцена тянет three.js + drei (~1.3 МБ несжатого JS) — грузим её отдельным чанком,
+// чтобы первый кадр интерфейса рисовался сразу, а модель приезжала следом (fallback = скелет).
+const PanelScene = lazy(() =>
+  import('./components/Panel3D/PanelScene').then((m) => ({ default: m.PanelScene })),
+);
 
 export const App: React.FC = () => {
   // Параметры URL (?v= / ?mode= / ?open=) читаются один раз при старте.
@@ -42,6 +48,18 @@ export const App: React.FC = () => {
     setScrubValue(patch.scrubValue);
     if (patch.clearSelection) setSelectedElementId(null);
   };
+
+  // Мост для страницы-хоста (iframe-встраивание на сайт ABG): режим и модалки уходят
+  // наружу через postMessage. Контракт — src/lib/widgetEvents.ts, пример приёмника —
+  // public/embed-demo.html. Никаких ПДн в событиях нет.
+  useEffect(() => {
+    emitWidgetEvent('abg3d:mode', { mode: viewMode });
+  }, [viewMode]);
+
+  useEffect(() => {
+    const overlay = isCalcOpen ? 'calc' : isConsultOpen ? 'consult' : isComparisonOpen ? 'compare' : null;
+    emitWidgetEvent('abg3d:overlay', { overlay, open: overlay !== null });
+  }, [isCalcOpen, isConsultOpen, isComparisonOpen]);
 
   return (
     <div className="h-screen h-[100dvh] w-screen overflow-hidden select-none bg-[#FBFBFB] text-[#18181B] flex flex-col relative font-sans antialiased">
