@@ -1,14 +1,4 @@
-import React, { useState } from 'react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-  ReferenceLine,
-} from 'recharts';
+import React, { useState, useEffect } from 'react';
 import { Flame, ShieldCheck, Zap, Info, X, ChevronRight } from 'lucide-react';
 
 export type ThermalMetricType = 'uValue' | 'rValue' | 'heatLoss';
@@ -141,6 +131,21 @@ export const ThermalUValueComparison: React.FC<ThermalUValueComparisonProps> = (
   className = '',
 }) => {
   const [metric, setMetric] = useState<ThermalMetricType>('uValue');
+  const [rechartsModule, setRechartsModule] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Dynamic import of recharts to lazy-load the heavy library
+    import('recharts')
+      .then((module) => {
+        setRechartsModule(module);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load recharts', err);
+        setLoading(false);
+      });
+  }, []);
 
   const metricConfigs = {
     uValue: {
@@ -256,61 +261,71 @@ export const ThermalUValueComparison: React.FC<ThermalUValueComparisonProps> = (
 
       {/* Recharts Data Visualization: Horizontal BarChart */}
       <div className="mt-2 w-full h-[155px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={THERMAL_COMPARISON_DATA}
-            layout="vertical"
-            margin={{ top: 8, right: 36, left: 4, bottom: 4 }}
-          >
-            <XAxis
-              type="number"
-              domain={activeConfig.domain}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 9.5, fill: '#A1A1AA', fontFamily: 'monospace' }}
-            />
-            <YAxis
-              type="category"
-              dataKey="shortName"
-              tickLine={false}
-              axisLine={false}
-              width={105}
-              tick={{ fontSize: 10.5, fill: '#27272A', fontWeight: 500 }}
-            />
-            <Tooltip
-              content={<CustomThermalTooltip metric={metric} />}
-              cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
-            />
-            {metric === 'uValue' && (
-              <ReferenceLine
-                x={0.31}
-                stroke="#A1A1AA"
-                strokeDasharray="3 3"
-                label={{
-                  value: 'СП 50: 0.31',
-                  position: 'top',
-                  fill: '#71717A',
-                  fontSize: 8.5,
-                  fontFamily: 'monospace',
-                }}
-              />
-            )}
-            <Bar
-              dataKey={activeConfig.dataKey}
-              radius={[0, 6, 6, 0]}
-              barSize={18}
-              animationDuration={600}
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-[#71717A]">Загрузка графика...</span>
+          </div>
+        ) : rechartsModule ? (
+          <rechartsModule.ResponsiveContainer width="100%" height="100%">
+            <rechartsModule.BarChart
+              data={THERMAL_COMPARISON_DATA}
+              layout="vertical"
+              margin={{ top: 8, right: 36, left: 4, bottom: 4 }}
             >
-              {THERMAL_COMPARISON_DATA.map((entry) => (
-                <Cell
-                  key={`cell-${entry.id}`}
-                  fill={entry.color}
-                  fillOpacity={entry.id === 'prefab-panel' ? 0.95 : 0.85}
+              <rechartsModule.XAxis
+                type="number"
+                domain={activeConfig.domain}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 9.5, fill: '#A1A1AA', fontFamily: 'monospace' }}
+              />
+              <rechartsModule.YAxis
+                type="category"
+                dataKey="shortName"
+                tickLine={false}
+                axisLine={false}
+                width={105}
+                tick={{ fontSize: 10.5, fill: '#27272A', fontWeight: 500 }}
+              />
+              <rechartsModule.Tooltip
+                content={<CustomThermalTooltip metric={metric} />}
+                cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
+              />
+              {metric === 'uValue' && (
+                <rechartsModule.ReferenceLine
+                  x={0.31}
+                  stroke="#A1A1AA"
+                  strokeDasharray="3 3"
+                  label={{
+                    value: 'СП 50: 0.31',
+                    position: 'top',
+                    fill: '#71717A',
+                    fontSize: 8.5,
+                    fontFamily: 'monospace',
+                  }}
                 />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+              )}
+              <rechartsModule.Bar
+                dataKey={activeConfig.dataKey}
+                radius={[0, 6, 6, 0]}
+                barSize={18}
+                animationDuration={600}
+              >
+                {THERMAL_COMPARISON_DATA.map((entry) => (
+                  <rechartsModule.Cell
+                    key={`cell-${entry.id}`}
+                    fill={entry.color}
+                    fillOpacity={entry.id === 'prefab-panel' ? 0.95 : 0.85}
+                  />
+                ))}
+              </rechartsModule.Bar>
+            </rechartsModule.BarChart>
+          </rechartsModule.ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-[#71717A]">Ошибка загрузки графика</span>
+          </div>
+        )}
       </div>
 
       {/* Physics & Engineering Insights Callout */}
