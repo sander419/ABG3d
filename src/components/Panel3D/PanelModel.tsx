@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox, Html } from '@react-three/drei';
 import { easing } from 'maath';
 import { WidgetViewMode, PANEL_CONFIG } from '../../data/panelConfig';
@@ -43,17 +43,6 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const structuralGroup = useRef<THREE.Group>(null);
   const rootGroup = useRef<THREE.Group>(null);
 
-  // Stored animated Z positions for Peikko ties
-  const currentPos = useRef({
-    facadeZ: 0.165,
-    pirZ: 0.005,
-    structuralZ: -0.155,
-    facadeTargetZ: 0.165,
-    pirTargetZ: 0.005,
-    structuralTargetZ: -0.155,
-    thermalLerp: 0,
-  });
-
   // Layer dimensions in meters (W: 2.0m, H: 2.4m, D: 390mm)
   const W = 2.0;
   const H = 2.4;
@@ -77,6 +66,12 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     k = 1.0;
   } else if (mode === 'structure') {
     k = 0.55;
+  } else if (mode === 'thermal') {
+    // Thermal mode used to render a fully assembled slab (k = 0): the PIR core that
+    // carries the whole temperature gradient sat hidden behind the 70 mm facade, so
+    // "ТЕПЛО" looked identical to "СБОРКА". A partial spread opens the 390 mm stack
+    // wide enough to read the gradient, while the facade also goes translucent below.
+    k = 0.45;
   }
 
   // Exact kinematic offsets with slight exploded baseline:
@@ -94,11 +89,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     return new THREE.MeshStandardMaterial({
       map: textures.concreteFacade,
       bumpMap: textures.concreteBump,
-      bumpScale: 0.035,
+      bumpScale: 0.022,
       roughnessMap: textures.concreteRoughness,
       roughness: 0.88,
       metalness: 0.02,
       color: new THREE.Color('#EDEDE9'),
+      // IBL from the in-code studio Environment; kept low so the precast face stays
+      // matte instead of picking up a plastic sheen.
+      envMapIntensity: 0.55,
+      // Always transparent-capable: in "ТЕПЛО" the facade fades to ~0.28 opacity
+      // (see useFrame) so the PIR gradient is visible through it.
+      transparent: true,
+      opacity: 1,
     });
   }, [textures]);
 
@@ -112,13 +114,14 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     return new THREE.MeshStandardMaterial({
       map: textures.concreteStructural,
       bumpMap: textures.structuralBump,
-      bumpScale: 0.038,
+      bumpScale: 0.026,
       roughnessMap: textures.structuralRoughness,
       roughness: 0.86,
       metalness: 0.03,
       color: new THREE.Color('#D6D3D1'),
       emissive: new THREE.Color('#F59E0B'),
       emissiveIntensity: 0.0,
+      envMapIntensity: 0.5,
     });
   }, [textures]);
 
@@ -144,6 +147,12 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
   const isThermal = mode === 'thermal';
 
+  // Thermal tags are 3D-anchored HTML pills. On a wide desktop stage the 2 m slab
+  // projects into a narrow strip, so the outer tags must sit further apart in model
+  // space than on a phone, where the panel already fills the whole canvas width.
+  const { size: viewportSize } = useThree();
+  const thermalTagX = viewportSize.width < 640 ? 0.9 : 1.25;
+
   // Zero-jank maath dampening inside useFrame
   useFrame((state, delta) => {
     // 1. Damp structural layer position
@@ -154,7 +163,6 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         0.35,
         delta
       );
-      currentPos.current.structuralZ = structuralGroup.current.position.z;
     }
 
     // 2. Damp PIR layer position with slight spring delay
@@ -165,7 +173,6 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         0.42,
         delta
       );
-      currentPos.current.pirZ = pirGroup.current.position.z;
     }
 
     // 3. Damp Facade position
@@ -176,22 +183,28 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         0.38,
         delta
       );
-      currentPos.current.facadeZ = facadeGroup.current.position.z;
     }
 
     // 4. Smooth zero-jank material transitions without recreating shaders
-    const targetFacadeColor = isThermal ? '#B6CEE8' : (isFacadeSelected ? '#FFFFFF' : '#EDEDE9');
+    const targetFacadeColor = isThermal ? '#D3DEEA' : (isFacadeSelected ? '#FFFFFF' : '#EDEDE9');
     easing.dampC(facadeMaterial.color, targetFacadeColor, 0.25, delta);
 
     const targetStructuralColor = isThermal ? '#F9E5C5' : (isStructuralSelected ? '#FFFFFF' : '#D6D3D1');
     easing.dampC(structuralMaterial.color, targetStructuralColor, 0.25, delta);
     easing.damp(structuralMaterial, 'emissiveIntensity', isThermal ? 0.14 : 0.0, 0.25, delta);
 
+    // 4b. Thermal mode: facade fades to a glass-like veil so the PIR temperature
+    // field (the actual subject of the mode) is visible through it. Depth writes are
+    // disabled while translucent, otherwise the box's back face would occlude the
+    // insulation sitting right behind it.
+    easing.damp(facadeMaterial, 'opacity', isThermal ? 0.3 : 1.0, 0.25, delta);
+    facadeMaterial.depthWrite = !isThermal;
+
     // Progressive bump scale interpolation: soft in blur stage, sharpens to full relief in ready stage
-    const targetFacadeBump = stage === 'ready' ? 0.035 : 0.005;
+    const targetFacadeBump = stage === 'ready' ? 0.022 : 0.004;
     easing.damp(facadeMaterial, 'bumpScale', targetFacadeBump, 0.28, delta);
 
-    const targetStructuralBump = stage === 'ready' ? 0.040 : 0.006;
+    const targetStructuralBump = stage === 'ready' ? 0.026 : 0.005;
     easing.damp(structuralMaterial, 'bumpScale', targetStructuralBump, 0.28, delta);
 
     // 5. Update procedural PIR closed-cell ShaderMaterial uniforms
@@ -228,7 +241,12 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const layerStructural = PANEL_CONFIG.layers[2];
   const layerAnchors = PANEL_CONFIG.layers[3];
 
-  const showCallouts = k > 0.15 || mode === 'exploded' || mode === 'structure' || selectedId !== null;
+  // In "ТЕПЛО" the layer placcards are replaced by the three temperature tags: with both
+  // on screen the callouts and the tags fought for the same strip (the audit measured
+  // 666 px² of text overlap at 390x844). Selecting a layer still shows its callout.
+  const showCallouts =
+    mode !== 'thermal' &&
+    (k > 0.15 || mode === 'exploded' || mode === 'structure' || selectedId !== null);
 
   // Invisible Hotspots Engineering Annotations
   const hotspotAnnotations: Record<string, HotspotAnnotation> = {
@@ -371,8 +389,8 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* 4. PEIKKO HARDWARE (Stainless Ties & PVL loops) */}
       <PeikkoHardware3D
-        facadeZ={currentPos.current.facadeZ}
-        structuralZ={currentPos.current.structuralZ}
+        facadeZ={targetFacadeZ}
+        structuralZ={targetStructuralZ}
         highlightedId={selectedId}
         onSelect={onSelect}
         clippingPlanes={clippingPlanes}
@@ -380,7 +398,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* Swiss Callout for Peikko Hardware */}
       {showCallouts && (
-        <group position={[-0.6, 0.0, (currentPos.current.facadeZ + currentPos.current.structuralZ) / 2]}>
+        <group position={[-0.6, 0.0, (targetFacadeZ + targetStructuralZ) / 2]}>
           <SwissCallout
             position={[0, 0, 0]}
             layer={layerAnchors}
@@ -394,7 +412,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       {/* 5. INVISIBLE UI HOTSPOTS (Discreet Pulsing Micro-Rings) */}
       {/* Hotspot 1: Peikko PDM Diagonal Truss Tie */}
       <InvisibleHotspot
-        position={[-0.6, 0.7, (currentPos.current.facadeZ + currentPos.current.structuralZ) / 2]}
+        position={[-0.6, 0.7, (targetFacadeZ + targetStructuralZ) / 2]}
         data={hotspotAnnotations.pdm}
         isSelected={activeHotspotId === 'pdm' || selectedId === 'anchors'}
         onSelect={() => {
@@ -406,7 +424,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* Hotspot 2: PIR Closed-Cell Insulation Core */}
       <InvisibleHotspot
-        position={[0.45, -0.2, currentPos.current.pirZ + dPIR / 2 + 0.005]}
+        position={[0.45, -0.2, targetPIRZ + dPIR / 2 + 0.005]}
         data={hotspotAnnotations.pir}
         isSelected={activeHotspotId === 'pir' || selectedId === 'insulation'}
         onSelect={() => {
@@ -418,7 +436,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* Hotspot 3: Peikko PVL Wire Loops (Recessed end box) */}
       <InvisibleHotspot
-        position={[-1.02, 0.0, currentPos.current.structuralZ]}
+        position={[-1.02, 0.0, targetStructuralZ]}
         data={hotspotAnnotations.pvl}
         isSelected={activeHotspotId === 'pvl'}
         onSelect={() => {
@@ -445,33 +463,34 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       {isThermal && (
         <group>
           {/* Outdoor Frost Tag - attached to top-left of the Facade layer */}
-          <group position={[-0.65, 1.28, currentPos.current.facadeZ + dFacade / 2]}>
+          <group position={[-thermalTagX, 1.3, targetFacadeZ + dFacade / 2]}>
             <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-              <div className="flex items-center gap-2 font-mono text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60" />
-                <span className="text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60 shrink-0" />
+                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
                 <span className="font-semibold text-[#1D4ED8]">-20 °C</span>
               </div>
             </Html>
           </group>
 
           {/* PIR Zero Isotherm Tag - attached to top-center of the PIR foam core */}
-          <group position={[0.0, 1.34, currentPos.current.pirZ]}>
+          <group position={[0.0, 1.3, targetPIRZ]}>
             <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-              <div className="flex items-center gap-2 font-mono text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#A7F3D0]/60" />
-                <span className="text-[#71717A] text-[10px] uppercase tracking-wider">Точка 0 °C:</span>
-                <span className="font-medium text-[#047857]">Внутри PIR</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3.5 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#A7F3D0]/60 shrink-0" />
+                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">0 °C:</span>
+                <span className="hidden sm:inline font-medium text-[#047857]">Внутри PIR</span>
+                <span className="sm:hidden font-medium text-[#047857]">0 °C</span>
               </div>
             </Html>
           </group>
 
           {/* Indoor Room Warmth Tag - attached to top-right of the Structural inner layer */}
-          <group position={[0.65, 1.28, currentPos.current.structuralZ - dStructural / 2]}>
+          <group position={[thermalTagX, 1.3, targetStructuralZ - dStructural / 2]}>
             <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-              <div className="flex items-center gap-2 font-mono text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse" />
-                <span className="text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse shrink-0" />
+                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>
                 <span className="font-semibold text-[#B45309]">+22 °C</span>
               </div>
             </Html>

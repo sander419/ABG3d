@@ -1,5 +1,7 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useMemo } from 'react';
 import { WidgetViewMode } from './data/panelConfig';
+import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
+import { readWidgetParamsFromLocation } from './lib/widgetParams';
 import { Header } from './components/UI/Header';
 import { PanelScene } from './components/Panel3D/PanelScene';
 import { PanelSceneSkeleton } from './components/Panel3D/PanelSceneSkeleton';
@@ -14,34 +16,31 @@ import { ComparisonDrawer } from './components/UI/ComparisonDrawer';
 import { Layers, Sliders, X, FileText, Calculator, HelpCircle, Columns } from 'lucide-react';
 
 export const App: React.FC = () => {
+  // Параметры URL (?v= / ?mode= / ?open=) читаются один раз при старте.
+  // До рефакторинга ?v=thermal2 был мёртвым: код его не читал вообще.
+  const initialParams = useMemo(() => readWidgetParamsFromLocation(), []);
+  const initialMode: WidgetViewMode = initialParams.mode ?? 'exploded';
+
   // Default to 'exploded' view mode so the user immediately sees the precast sandwich layers and Peikko ties
-  const [viewMode, setViewMode] = useState<WidgetViewMode>('exploded');
-  const [scrubValue, setScrubValue] = useState<number>(1.0);
+  const [viewMode, setViewMode] = useState<WidgetViewMode>(initialMode);
+  const [scrubValue, setScrubValue] = useState<number>(MODE_DEFAULTS[initialMode]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showDimensions, setShowDimensions] = useState<boolean>(true);
   const [show2DFallback, setShow2DFallback] = useState<boolean>(false);
 
-  // Modals state
-  const [isCalcOpen, setIsCalcOpen] = useState<boolean>(false);
-  const [isConsultOpen, setIsConsultOpen] = useState<boolean>(false);
-  const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
+  // Modals state (?open=calc|consult|compare открывает нужную сразу)
+  const [isCalcOpen, setIsCalcOpen] = useState<boolean>(initialParams.overlay === 'calc');
+  const [isConsultOpen, setIsConsultOpen] = useState<boolean>(initialParams.overlay === 'consult');
+  const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(initialParams.overlay === 'compare');
 
   // Mobile drawer state ('none' | 'anatomy' | 'metrics')
   const [mobileDrawer, setMobileDrawer] = useState<'none' | 'anatomy' | 'metrics'>('none');
 
   const handleModeChange = (mode: WidgetViewMode) => {
+    const patch = modeChangePatch(mode);
     setViewMode(mode);
-    if (mode === 'assembled') {
-      setScrubValue(0);
-      setSelectedElementId(null);
-    } else if (mode === 'exploded') {
-      setScrubValue(1.0);
-    } else if (mode === 'structure') {
-      setScrubValue(0.5);
-    } else if (mode === 'thermal') {
-      setScrubValue(0.15);
-      setSelectedElementId(null);
-    }
+    setScrubValue(patch.scrubValue);
+    if (patch.clearSelection) setSelectedElementId(null);
   };
 
   return (
@@ -89,7 +88,7 @@ export const App: React.FC = () => {
             <Suspense fallback={<PanelSceneSkeleton />}>
               <PanelScene
                 mode={viewMode}
-                scrubProgress={viewMode === 'exploded' ? scrubValue : undefined}
+                scrubProgress={scrubPropFor(viewMode, scrubValue)}
                 selectedId={selectedElementId}
                 onSelect={(id) => setSelectedElementId(id)}
                 showDimensions={showDimensions}

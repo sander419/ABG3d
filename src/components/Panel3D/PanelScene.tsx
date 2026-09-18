@@ -1,11 +1,12 @@
 import React, { Suspense, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, ContactShadows, Environment, Html, AdaptiveDpr } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, ContactShadows, Environment, Html, AdaptiveDpr, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { easing } from 'maath';
 import { WidgetViewMode } from '../../data/panelConfig';
 import { PanelModel } from './PanelModel';
 import { PanelSceneSkeleton } from './PanelSceneSkeleton';
+import { SceneErrorBoundary } from './SceneErrorBoundary';
 import {
   preloadProceduralTextures,
   useProgressiveProceduralTextures,
@@ -41,15 +42,26 @@ function ClippingManager() {
 interface CameraRigProps {
   isInteracting: boolean;
   resetKey?: number;
+  mode: WidgetViewMode;
 }
 
-function CameraRig({ isInteracting, resetKey = 0 }: CameraRigProps) {
+function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
   const { size } = useThree();
   const isPortrait = size.width < size.height;
   const aspect = size.width / Math.max(1, size.height);
 
   // Dynamic zoom distance: on mobile portrait (aspect ~0.55), step back smoothly so panel and Swiss Callouts never clip
   const scale = isPortrait ? Math.max(1.35, 1.0 / Math.max(0.42, aspect)) : 1.0;
+
+  // Hero framing per mode. The default 3/4 architectural view slightly steps back
+  // (vs the old 2.8/1.3/3.4) so the 2.4 m slab keeps air around it instead of
+  // touching the viewport edges. Thermal mode swings the camera towards the cut
+  // plane: across the 390 mm stack the temperature gradient is what the user came
+  // for, and an edge-on-ish angle shows facade -> PIR -> structural in one look.
+  const isThermalView = mode === 'thermal';
+  const baseX = (isThermalView ? 4.30 : 3.05) * scale;
+  const baseY = ((isThermalView ? 0.95 : 1.25) + (isPortrait ? 0.35 : 0)) * scale;
+  const baseZ = (isThermalView ? 2.20 : 3.55) * scale;
 
   // Track if user has performed a custom orbit rotation
   const hasCustomOrbitRef = useRef(false);
@@ -92,10 +104,6 @@ function CameraRig({ isInteracting, resetKey = 0 }: CameraRigProps) {
 
     if (!hasCustomOrbitRef.current) {
       // Default architectural hero perspective: anchored slab with gentle organic breathing
-      const baseX = 2.8 * scale;
-      const baseY = (1.3 + (isPortrait ? 0.35 : 0)) * scale;
-      const baseZ = 3.4 * scale;
-
       const targetX = baseX + pointerX + breathX;
       const targetY = baseY + pointerY + breathY;
       const targetZ = baseZ + breathZ;
@@ -232,14 +240,18 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
       className="relative w-full h-full select-none overflow-hidden bg-[#FBFBFB]"
       style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
     >
-      {/* 3D WebGL Canvas */}
+      {/* 3D WebGL Canvas. Wrapped in an ErrorBoundary: a failed 3D mount (WebGL,
+          environment, shader compile) must degrade to the 2D blueprint, never
+          to the blank rectangle it used to become. */}
+      <SceneErrorBoundary onSelectLayer={onSelect}>
       <Canvas
         shadows="soft"
+        dpr={[1, 1.75]}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 0.92,
+          toneMappingExposure: 0.95,
           localClippingEnabled: true,
         }}
         className="w-full h-full"
@@ -255,7 +267,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           far={40}
         />
 
-        <CameraRig isInteracting={isInteracting} resetKey={resetKey} />
+        <CameraRig isInteracting={isInteracting} resetKey={resetKey} mode={mode} />
 
         <OrbitControls
           ref={controlsRef}
@@ -276,12 +288,45 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           onEnd={() => setIsInteracting(false)}
         />
 
-        {/* Studio High-Key Lighting: Diffuse Environment + Directionals + Subtle PointLight Accents */}
-        {/* Soft diffused cool-neutral environment fill giving authentic concrete mineral depth */}
-        <Environment preset="city" environmentIntensity={0.38} />
+        {/* Studio High-Key Lighting: procedural IBL + Directionals + Subtle PointLight Accents */}
+        {/* Environment is built in-code from Lightformers (no external HDRI):
+            drei's `preset` pulls a ~1.5 MB map from raw.githack.com inside Suspense,
+            so one blocked third-party request used to blank the whole widget. */}
+        <Environment resolution={256} frames={1} environmentIntensity={0.55}>
+          <color attach="background" args={['#33363B']} />
+          {/* Large soft key box above and slightly behind the slab */}
+          <Lightformer
+            form="rect"
+            intensity={3.0}
+            color="#FFFFFF"
+            position={[0.5, 4.0, -3.0]}
+            scale={[7, 3.2, 1]}
+            target={[0, 0, 0]}
+          />
+          {/* Cool north-sky side panel (concrete reads mineral, not yellowish) */}
+          <Lightformer
+            form="rect"
+            intensity={1.0}
+            color="#DBE6F3"
+            position={[-4.5, 1.5, 1.0]}
+            scale={[4.5, 4.5, 1]}
+            target={[0, 0, 0]}
+          />
+          {/* Warm floor bounce so the lower bevels of the precast layers stay readable */}
+          <Lightformer
+            form="rect"
+            intensity={0.7}
+            color="#FFE9CF"
+            position={[4.2, 0.4, 1.8]}
+            scale={[4, 4, 1]}
+            target={[0, 0, 0]}
+          />
+          {/* Dim under-ring: grounds the slab without washing out cast shadows */}
+          <Lightformer form="ring" intensity={0.35} color="#FFFFFF" position={[0, -3.4, 0]} scale={4} target={[0, 0, 0]} />
+        </Environment>
 
         {/* Base Ambient: kept low so cast shadows stay readable between the slab layers */}
-        <ambientLight intensity={0.22} color="#EDF2F7" />
+        <ambientLight intensity={0.16} color="#EDF2F7" />
 
         {/* Primary Key Light: crisp architectural sun / key light. This is the ONLY shadow
             caster — a single shadow map keeps the layer separation legible without the
@@ -313,7 +358,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         {/* Ground bounce light */}
         <directionalLight position={[0, -3.5, 1.0]} intensity={0.10} color="#CBD5E1" />
 
-        <AdaptiveDpr pixelated />
+        <AdaptiveDpr />
 
         <Suspense
           fallback={
@@ -352,6 +397,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           />
         </Suspense>
       </Canvas>
+      </SceneErrorBoundary>
 
       {/* Floating Cross-Section Tool Dock (Top-Right / Responsive) */}
       {clippingState.enabled && (
