@@ -234,12 +234,12 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
     >
       {/* 3D WebGL Canvas */}
       <Canvas
-        shadows={false}
+        shadows="soft"
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.08,
+          toneMappingExposure: 0.92,
           localClippingEnabled: true,
         }}
         className="w-full h-full"
@@ -280,24 +280,38 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         {/* Soft diffused cool-neutral environment fill giving authentic concrete mineral depth */}
         <Environment preset="city" environmentIntensity={0.38} />
 
-        {/* Base Ambient: slightly cool sky tint avoiding dirty dark crevices */}
-        <ambientLight intensity={0.45} color="#EDF2F7" />
+        {/* Base Ambient: kept low so cast shadows stay readable between the slab layers */}
+        <ambientLight intensity={0.22} color="#EDF2F7" />
 
-        {/* Primary Key Light: crisp architectural sun / key light */}
-        <directionalLight position={[4.2, 7.0, 4.0]} intensity={0.95} color="#FCFBF7" />
+        {/* Primary Key Light: crisp architectural sun / key light. This is the ONLY shadow
+            caster — a single shadow map keeps the layer separation legible without the
+            cost of shadowing every light. The frustum is fitted to the exploded slab
+            (2.0 x 2.4 m plus ~0.5 m of travel along Z) with headroom. */}
+        <directionalLight
+          position={[4.2, 7.0, 4.0]}
+          intensity={0.9}
+          color="#FCFBF7"
+          castShadow
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-camera-left={-3}
+          shadow-camera-right={3}
+          shadow-camera-top={3.5}
+          shadow-camera-bottom={-3.5}
+          shadow-camera-near={0.5}
+          shadow-camera-far={20}
+          shadow-bias={-0.0006}
+          shadow-normalBias={0.025}
+        />
 
         {/* Secondary Fill Light: cool north-sky fill giving concrete its refined architectural tone */}
-        <directionalLight position={[-4.0, 3.5, -2.5]} intensity={0.65} color="#DCE7F5" />
+        <directionalLight position={[-4.0, 3.5, -2.5]} intensity={0.40} color="#DCE7F5" />
 
         {/* Rim / Contour Light: sharp glancing light to highlight chamfered precast edges */}
-        <directionalLight position={[-2.5, 1.2, 3.8]} intensity={0.35} color="#E8EEF5" />
-
-        {/* Soft Accent PointLight: subtle local fill focused on the Peikko ties and edge chamfers */}
-        <pointLight position={[1.2, 0.4, 1.8]} intensity={0.32} distance={6.0} decay={2} color="#E0EAF6" />
-        <pointLight position={[-1.6, -0.2, 1.2]} intensity={0.22} distance={5.5} decay={2} color="#F0F4F8" />
+        <directionalLight position={[-2.5, 1.2, 3.8]} intensity={0.28} color="#E8EEF5" />
 
         {/* Ground bounce light */}
-        <directionalLight position={[0, -3.5, 1.0]} intensity={0.14} color="#CBD5E1" />
+        <directionalLight position={[0, -3.5, 1.0]} intensity={0.10} color="#CBD5E1" />
 
         <AdaptiveDpr pixelated />
 

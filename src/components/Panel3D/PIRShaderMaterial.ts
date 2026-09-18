@@ -290,12 +290,14 @@ export interface PIRShaderUniforms {
 export function createPIRShaderMaterial(): THREE.ShaderMaterial {
   const uniforms: PIRShaderUniforms = {
     uTime: { value: 0 },
-    // Warm authentic polyisocyanurate foam core - warm graphite / sandy tone (#D4CEBE)
-    uBaseColor: { value: new THREE.Color(0xD4CEBE) },
-    // Deeper cell micro-cavities (#989282)
-    uCavityColor: { value: new THREE.Color(0x989282) },
-    // Cell ridge highlights (#E8E4D8)
-    uWallColor: { value: new THREE.Color(0xE8E4D8) },
+    // Warm honey/amber polyisocyanurate core (#C9AE81) - matches the shader's documented
+    // intent. The previous #D4CEBE sat within a few percent of the B30/B35 concrete tones,
+    // so the insulation layer visually vanished into the slab.
+    uBaseColor: { value: new THREE.Color(0xC9AE81) },
+    // Deeper cell micro-cavities (#8E6F40)
+    uCavityColor: { value: new THREE.Color(0x8E6F40) },
+    // Cell ridge highlights (#EAD8B8)
+    uWallColor: { value: new THREE.Color(0xEAD8B8) },
     // Optimal frequency for 2.4m x 1.4m x 0.2m precast slab:
     // Scale 85.0 delivers crisp closed-cell resolution without aliasing
     uCellScale: { value: 88.0 },

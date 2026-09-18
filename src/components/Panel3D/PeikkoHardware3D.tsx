@@ -22,9 +22,14 @@ export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
 
   const steelMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: isSelected ? '#18181B' : '#717682',
-      roughness: 0.24,
-      metalness: 0.92,
+      color: isSelected ? '#18181B' : '#A8AEB8',
+      roughness: 0.30,
+      metalness: 0.70,
+      // The scene environment is deliberately dim (environmentIntensity 0.38), and a
+      // near-pure metal with no reflections renders BLACK in three.js. Driving the
+      // material's own envMapIntensity above 1 keeps the stainless steel reading as
+      // brushed metal against that weak environment.
+      envMapIntensity: 2.4,
       clippingPlanes: activePlanes,
       clipShadows: true,
       side: THREE.DoubleSide,
@@ -33,9 +38,10 @@ export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
 
   const boxMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      color: '#27272A',
-      roughness: 0.38,
-      metalness: 0.75,
+      color: '#4A4F57',
+      roughness: 0.5,
+      metalness: 0.45,
+      envMapIntensity: 1.4,
       clippingPlanes: activePlanes,
       clipShadows: true,
       side: THREE.DoubleSide,

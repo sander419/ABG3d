@@ -284,21 +284,24 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
   return (
     <group ref={rootGroup}>
-      {/* 1. FACADE CONCRETE (70 mm) with Beveled Edges */}
+      {/* 1. FACADE CONCRETE (70 mm) with Beveled Edges.
+          NOTE: drei's <RoundedBox> IS a mesh (it renders <mesh ...rest><extrudeGeometry/></mesh>).
+          Wrapping it in another <mesh material={...}> put the material on an empty
+          geometry-less mesh, so the layers silently fell back to R3F's default white
+          MeshBasicMaterial (unlit). Material/props go directly on RoundedBox. */}
       <group ref={facadeGroup} position={[0, 0, baseFacadeZ]}>
-        <mesh
+        <RoundedBox
+          args={[W, H, dFacade]}
+          radius={0.003} // 3 mm bevel to catch highlights
+          smoothness={4}
+          material={facadeMaterial}
+          castShadow
+          receiveShadow
           onClick={(e) => {
             e.stopPropagation();
             onSelect('facade');
           }}
-          material={facadeMaterial}
-        >
-          <RoundedBox
-            args={[W, H, dFacade]}
-            radius={0.003} // 3 mm bevel to catch highlights
-            smoothness={4}
-          />
-        </mesh>
+        />
 
         {/* Swiss Callout for Facade */}
         {showCallouts && (
@@ -314,19 +317,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* 2. PIR INSULATION (200 mm) with Micro-Fillet */}
       <group ref={pirGroup} position={[0, 0, basePIRZ]}>
-        <mesh
+        <RoundedBox
+          args={[W, H, dPIR]}
+          radius={0.002}
+          smoothness={3}
+          material={pirShaderMat}
+          castShadow
+          receiveShadow
           onClick={(e) => {
             e.stopPropagation();
             onSelect('insulation');
           }}
-          material={pirShaderMat}
-        >
-          <RoundedBox
-            args={[W, H, dPIR]}
-            radius={0.002}
-            smoothness={3}
-          />
-        </mesh>
+        />
 
         {/* Swiss Callout for PIR */}
         {showCallouts && (
@@ -342,19 +344,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* 3. STRUCTURAL CONCRETE (120 mm) with Beveled Edges */}
       <group ref={structuralGroup} position={[0, 0, baseStructuralZ]}>
-        <mesh
+        <RoundedBox
+          args={[W, H, dStructural]}
+          radius={0.003}
+          smoothness={4}
+          material={structuralMaterial}
+          castShadow
+          receiveShadow
           onClick={(e) => {
             e.stopPropagation();
             onSelect('structural');
           }}
-          material={structuralMaterial}
-        >
-          <RoundedBox
-            args={[W, H, dStructural]}
-            radius={0.003}
-            smoothness={4}
-          />
-        </mesh>
+        />
 
         {/* Swiss Callout for Structural */}
         {showCallouts && (
