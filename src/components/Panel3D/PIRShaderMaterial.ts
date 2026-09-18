@@ -56,6 +56,7 @@ const PIRFragmentShader = /* glsl */ `
   uniform float uCavityDepth;    // Bump / cavity depth (~0.65)
   uniform float uSelected;       // Selection highlight lerp (0.0 to 1.0)
   uniform float uThermal;        // Thermal visualization mode (0.0 to 1.0)
+  uniform float uIsoPosition;    // Position of the 0 °C isotherm inside the core (0 = interior face, 1 = exterior face)
   uniform float uBlurProgress;   // Progressive low-res blur to hi-res transition (1.0 = blur, 0.0 = sharp)
   uniform vec3 uLightDir;        // Key studio light vector
   uniform vec3 uFillLightDir;    // Secondary soft fill light vector
@@ -241,29 +242,36 @@ const PIRFragmentShader = /* glsl */ `
       finalColor = mix(finalColor, finalColor * selectTint + vec3(0.08, 0.07, 0.04), uSelected);
     }
 
-    // B. Thermal Profile Mode: transition to insulation temperature barrier
-    // In thermal mode, PIR is the primary thermal shield (R0 = 9.2).
-    // It creates a smooth, vivid gradient from warm interior (+21°C gold-orange) to cold facade (-18°C cyan/blue).
+    // B. Thermal Profile Mode: the PIR core IS the thermal barrier, so it carries
+    // the whole -20 °C -> +22 °C field (R0 = 9.2). tZ runs from the interior face
+    // (0.0, +22 °C) to the exterior face (1.0, -20 °C); the previous three-stop mix
+    // saturated into flat paint at both ends, so here the ramp has four anchors and
+    // crosses a near-white 0 °C isotherm band where the temperature actually passes 0.
     if (uThermal > 0.01) {
-      // Map Z-position through the 200mm core to temperature gradient
-      // vObjectPosition.z ranges from -0.1 to +0.1
       float tZ = clamp((vObjectPosition.z + 0.1) / 0.2, 0.0, 1.0);
-      
-      // Thermal barrier gradient
-      vec3 coldTone = vec3(0.35, 0.65, 0.88);   // Near facade
-      vec3 barrierTone = vec3(0.85, 0.72, 0.42); // Stable core
-      vec3 warmTone = vec3(0.96, 0.62, 0.22);    // Near interior
-      
-      vec3 thermalColor;
-      if (tZ > 0.5) {
-        thermalColor = mix(barrierTone, coldTone, (tZ - 0.5) * 2.0);
-      } else {
-        thermalColor = mix(warmTone, barrierTone, tZ * 2.0);
-      }
-      
+
+      vec3 warmTone = vec3(0.96, 0.55, 0.18);   // +22 °C, interior face
+      vec3 amberTone = vec3(0.95, 0.72, 0.34);  // ~ +8 °C
+      vec3 isothermTone = vec3(0.93, 0.93, 0.90); // 0 °C isotherm
+      vec3 frostTone = vec3(0.58, 0.78, 0.93);  // ~ -8 °C
+      vec3 coldTone = vec3(0.16, 0.42, 0.80);   // -20 °C, facade face
+
+      float s1 = smoothstep(0.00, 0.46, tZ);
+      float s2 = smoothstep(0.34, 0.68, tZ);
+      float s3 = smoothstep(0.62, 0.94, tZ);
+
+      vec3 thermalColor = mix(warmTone, amberTone, s1);
+      thermalColor = mix(thermalColor, isothermTone, s2);
+      thermalColor = mix(thermalColor, frostTone, s3);
+      thermalColor = mix(thermalColor, coldTone, s3 * s3);
+
+      // Thin bright line exactly at the 0 °C isotherm (the tag says "Точка 0 °C")
+      float isoLine = 1.0 - smoothstep(0.0, 0.028, abs(tZ - uIsoPosition));
+      thermalColor += vec3(0.16, 0.15, 0.12) * isoLine;
+
       // Modulate with closed-cell porosity so it still looks like authentic foam, not flat paint
-      thermalColor = mix(thermalColor * 0.78, thermalColor * 1.05, cellStructure);
-      finalColor = mix(finalColor, thermalColor * (diffuseLight * 0.75 + 0.35), uThermal);
+      thermalColor = mix(thermalColor * 0.82, thermalColor * 1.04, cellStructure);
+      finalColor = mix(finalColor, thermalColor * (diffuseLight * 0.62 + 0.46), uThermal);
     }
 
     gl_FragColor = vec4(finalColor, 1.0);
@@ -279,6 +287,7 @@ export interface PIRShaderUniforms {
   uCavityDepth: { value: number };
   uSelected: { value: number };
   uThermal: { value: number };
+  uIsoPosition: { value: number };
   uBlurProgress: { value: number };
   uLightDir: { value: THREE.Vector3 };
   uFillLightDir: { value: THREE.Vector3 };
@@ -304,6 +313,10 @@ export function createPIRShaderMaterial(): THREE.ShaderMaterial {
     uCavityDepth: { value: 0.65 },
     uSelected: { value: 0.0 },
     uThermal: { value: 0.0 },
+    // 0 °C crossing for a +22 °C / -20 °C pair solved linearly across the 200 mm core:
+    // 22 / (22 + 20) = 0.524. Kept as a uniform so the isotherm line can be moved
+    // when the canonical temperatures of the widget change.
+    uIsoPosition: { value: 0.524 },
     uBlurProgress: { value: 1.0 }, // Starts in progressive blur state, smoothly transitions to 0.0
     uLightDir: { value: new THREE.Vector3(5.0, 8.0, 6.0).normalize() },
     uFillLightDir: { value: new THREE.Vector3(-6.0, 2.0, -4.0).normalize() },
