@@ -1,5 +1,5 @@
 import React from 'react';
-import { FallbackBlueprint } from '../UI/FallbackBlueprint';
+import { SceneFallback } from '../UI/SceneFallback';
 
 interface SceneErrorBoundaryProps {
   children: React.ReactNode;
@@ -10,7 +10,6 @@ interface SceneErrorBoundaryProps {
 interface SceneErrorBoundaryState {
   hasError: boolean;
   message: string;
-  blueprintDismissed: boolean;
 }
 
 /**
@@ -19,9 +18,15 @@ interface SceneErrorBoundaryState {
  * Зачем: 3D-слой зависит от внешних вещей (сеть к CDN окружения, драйвер/WebGL-контекст,
  * компиляция шейдеров). Любая ошибка внутри <Canvas> без ErrorBoundary сносит всё дерево
  * React и виджет превращается в белый прямоугольник на сайте заказчика. Этот boundary
- * вместо белого экрана показывает 2D-архитектурный чертёж и короткое сообщение.
+ * вместо белого экрана показывает 2D-архитектурный чертёж и короткое сообщение (общий
+ * `SceneFallback` — тот же, что и у пробы поддержки WebGL).
  *
  * Ловит ошибки рендера и асинхронные сбои, которые React перебрасывает в ближайший boundary.
+ *
+ * Чего boundary не ловит и что закрыто рядом:
+ * - отказ создания `WebGLRenderer` внутри `<Canvas>` живёт в эффекте R3F, вне React-границы —
+ *   поэтому перед монтированием сцены стоит `probeWebGLSupport` (`PanelScene`);
+ * - потеря контекста на лету (`webglcontextlost`) — её ловит `WebGLContextGuard` в `PanelScene`.
  */
 export class SceneErrorBoundary extends React.Component<
   SceneErrorBoundaryProps,
@@ -29,7 +34,7 @@ export class SceneErrorBoundary extends React.Component<
 > {
   constructor(props: SceneErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, message: '', blueprintDismissed: false };
+    this.state = { hasError: false, message: '' };
   }
 
   static getDerivedStateFromError(error: unknown): Partial<SceneErrorBoundaryState> {
@@ -45,57 +50,20 @@ export class SceneErrorBoundary extends React.Component<
   }
 
   private handleRetry = (): void => {
-    this.setState({ hasError: false, message: '', blueprintDismissed: false });
+    this.setState({ hasError: false, message: '' });
   };
 
   render(): React.ReactNode {
-    const { hasError, message, blueprintDismissed } = this.state;
-    const { children, onSelectLayer } = this.props;
+    const { hasError, message } = this.state;
 
-    if (!hasError) return children;
-
-    if (!blueprintDismissed) {
-      return (
-        <div className="w-full h-full p-4 sm:p-8 flex flex-col items-center justify-center gap-3 overflow-auto">
-          <div className="w-full max-w-3xl flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#71717A]">
-            <span className="px-2.5 py-1 rounded-full bg-[#18181B] text-white">3D недоступно</span>
-            <span>Показан 2D-разрез панели</span>
-          </div>
-          <FallbackBlueprint
-            onClose={() => this.setState({ blueprintDismissed: true })}
-            onSelectLayer={onSelectLayer ?? (() => {})}
-          />
-          <div className="max-w-3xl w-full flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono text-[#A1A1AA]">
-            <span className="truncate max-w-full">{message}</span>
-            <button
-              type="button"
-              onClick={this.handleRetry}
-              className="px-3 py-1 rounded-full border border-black/[0.08] bg-white/90 hover:bg-white text-[#3F3F46] hover:text-[#18181B] transition-colors cursor-pointer"
-            >
-              Повторить 3D
-            </button>
-          </div>
-        </div>
-      );
-    }
+    if (!hasError) return this.props.children;
 
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
-        <span className="px-2.5 py-1 rounded-full bg-[#18181B] text-white font-mono text-[10px] uppercase tracking-[0.18em]">
-          3D недоступно
-        </span>
-        <p className="max-w-sm text-sm text-[#52525B]">
-          Интерактивная 3D-модель не запустилась на этом устройстве. Все характеристики панели
-          доступны в разделах «Анатомия» и «Показатели».
-        </p>
-        <button
-          type="button"
-          onClick={this.handleRetry}
-          className="px-3.5 py-1.5 rounded-full border border-black/[0.08] bg-white/90 hover:bg-white text-[#3F3F46] hover:text-[#18181B] text-[11px] font-mono uppercase tracking-[0.18em] transition-colors cursor-pointer"
-        >
-          Повторить 3D
-        </button>
-      </div>
+      <SceneFallback
+        detail={message}
+        onRetry={this.handleRetry}
+        onSelectLayer={this.props.onSelectLayer}
+      />
     );
   }
 }

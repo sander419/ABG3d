@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, ContactShadows, Environment, Html, AdaptiveDpr, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
@@ -7,6 +7,7 @@ import { WidgetViewMode } from '../../data/panelConfig';
 import { PanelModel } from './PanelModel';
 import { PanelSceneSkeleton } from './PanelSceneSkeleton';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
+import { SceneFallback } from '../UI/SceneFallback';
 import {
   preloadProceduralTextures,
   useProgressiveProceduralTextures,
@@ -15,6 +16,11 @@ import { RotateCw, Move3d, Hand, RotateCcw, Scissors } from 'lucide-react';
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib';
 import { CrossSectionPlaneHelper, ClippingAxis } from './CrossSectionPlaneHelper';
 import { CrossSectionControl } from './CrossSectionControl';
+import { probeWebGLSupport, type WebGLAvailability } from '../../utils/webglSupport';
+
+/** Текст для мелкой моноширинной строки под чертежом, когда WebGL нет вообще. */
+const WEBGL_UNAVAILABLE_DETAIL =
+  'Браузер не отдаёт WebGL: аппаратный рендер отключён, устаревший GPU или корпоративная политика';
 
 // Eagerly preload procedural bump, roughness, and noise texture maps
 // into Drei's TextureLoader cache to guarantee zero-jank transitions
@@ -35,6 +41,31 @@ function ClippingManager() {
   useEffect(() => {
     gl.localClippingEnabled = true;
   }, [gl]);
+  return null;
+}
+
+/**
+ * Ловит потерю WebGL-контекста уже после успешного старта сцены.
+ *
+ * Почему не хватает ErrorBoundary: когда драйвер сбрасывается или браузер
+ * выгружает вкладку в фон, three не бросает ошибку — рендер просто останавливается,
+ * канвас замирает последним (или пустым) кадром. Пользователь видит мёртвую сцену
+ * без объяснений. Слушаем `webglcontextlost` на самом канвасе R3F и уходим в 2D-фолбэк.
+ */
+function WebGLContextGuard({ onLost }: { onLost: (detail: string) => void }) {
+  const gl = useThree((state) => state.gl);
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      // preventDefault сообщает браузеру, что мы намерены обработать потерю сами
+      // (иначе он не станет восстанавливать контекст). Саму сцену перемонтирует
+      // кнопка «Повторить 3D» — с новым канвасом и новым контекстом.
+      event.preventDefault();
+      onLost('Контекст WebGL потерян: драйвер GPU сбросился или вкладка была выгружена в фон');
+    };
+    canvas.addEventListener('webglcontextlost', handleLost);
+    return () => canvas.removeEventListener('webglcontextlost', handleLost);
+  }, [gl, onLost]);
   return null;
 }
 
@@ -253,17 +284,51 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
     setResetKey((prev) => prev + 1);
   };
 
+  // WebGL-проба ДО монтирования <Canvas>. Отказ создания WebGLRenderer живёт
+  // в эффекте R3F, вне React-границы ошибок: SceneErrorBoundary его не видит,
+  // и пользователь получал пустую сцену — без сообщения и без 2D-чертежа.
+  const [webglSupport, setWebglSupport] = useState<WebGLAvailability>(() => probeWebGLSupport());
+  const [contextLostDetail, setContextLostDetail] = useState<string | null>(null);
+  // Ключ перемонтирования сцены: «Повторить 3D» поднимает канвас с нуля.
+  const [sceneKey, setSceneKey] = useState(0);
+
+  const handleContextLost = useCallback((detail: string) => {
+    setContextLostDetail(detail);
+  }, []);
+
+  const handleRetry3D = useCallback(() => {
+    const support = probeWebGLSupport();
+    setWebglSupport(support);
+    setContextLostDetail(null);
+    if (support === 'available') setSceneKey((prev) => prev + 1);
+  }, []);
+
+  const sceneUnavailable = webglSupport === 'unsupported' || contextLostDetail !== null;
+
   return (
     <div
       ref={stageRef}
       className="relative w-full h-full select-none overflow-hidden bg-[#FBFBFB]"
       style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
     >
-      {/* 3D WebGL Canvas. Wrapped in an ErrorBoundary: a failed 3D mount (WebGL,
-          environment, shader compile) must degrade to the 2D blueprint, never
-          to the blank rectangle it used to become. */}
+      {/* 3D-сцена. Два слоя защиты:
+          1) проба WebGL до монтирования <Canvas> — отказ создания WebGLRenderer
+             в эффекте R3F не попадает в React-границу ошибок и раньше давал
+             пустую сцену без сообщения;
+          2) SceneErrorBoundary — ошибки рендера/шейдеров уже внутри <Canvas>;
+          3) WebGLContextGuard внутри сцены — потеря контекста на лету.
+          Любой из трёх исходов ведёт в один и тот же 2D-фолбэк (SceneFallback). */}
+      {sceneUnavailable ? (
+        <SceneFallback
+          reason={contextLostDetail ? 'Контекст 3D потерян' : 'Показан 2D-разрез панели'}
+          detail={contextLostDetail ?? WEBGL_UNAVAILABLE_DETAIL}
+          onRetry={handleRetry3D}
+          onSelectLayer={onSelect}
+        />
+      ) : (
       <SceneErrorBoundary onSelectLayer={onSelect}>
       <Canvas
+        key={sceneKey}
         shadows="soft"
         dpr={[1, 1.75]}
         gl={{
@@ -277,6 +342,8 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
       >
         <ClippingManager />
+
+        <WebGLContextGuard onLost={handleContextLost} />
 
         <PerspectiveCamera
           makeDefault
@@ -417,9 +484,11 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         </Suspense>
       </Canvas>
       </SceneErrorBoundary>
+      )}
 
-      {/* Floating Cross-Section Tool Dock (Top-Right / Responsive) */}
-      {clippingState.enabled && (
+      {/* Floating Cross-Section Tool Dock (Top-Right / Responsive).
+          Инструмент управляет 3D-сценой: без неё док не показываем вовсе. */}
+      {clippingState.enabled && !sceneUnavailable && (
         <div className="absolute top-16 sm:top-20 right-3 sm:right-4 z-30 animate-in fade-in slide-in-from-top-2 duration-200">
           <CrossSectionControl
             enabled={clippingState.enabled}
@@ -439,8 +508,15 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
 
       {/* Floating touch interaction mode & camera reset controls.
           Raised above the mobile action bar (<lg) so the stage controls never sit
-          on top of the bar's buttons; desktop keeps the bottom-right corner. */}
-      <div id="stage-controls-dock" className="absolute bottom-[4.5rem] lg:bottom-4 right-3 sm:right-4 z-20 flex items-center gap-2">
+          on top of the bar's buttons; desktop keeps the bottom-right corner.
+          Без 3D вращать и сбрасывать нечего — контролы скрываются, уступая место
+          фолбэку с его кнопкой «Повторить 3D» (иначе они садились на неё). */}
+      <div
+        id="stage-controls-dock"
+        className={`absolute bottom-[4.5rem] lg:bottom-4 right-3 sm:right-4 z-20 items-center gap-2 ${
+          sceneUnavailable ? 'hidden' : 'flex'
+        }`}
+      >
         {/* Cross-Section Tool Trigger Button */}
         <button
           id="cross-section-trigger-btn"
@@ -504,9 +580,13 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
 
       {/* Progressive procedural material status indicator + gesture hint.
           Own zone at the top-left of the stage: the bottom strip belongs to the
-          comparison pill / mobile action bar / stage controls. */}
+          comparison pill / mobile action bar / stage controls.
+          HUD описывает разрешение текстур живой 3D-сцены — без неё он бессмысленен
+          и только накрывал бы 2D-чертёж фолбэка. */}
       <div className={`absolute top-28 sm:top-32 left-3 sm:left-4 z-20 flex-col items-start gap-2 max-w-[calc(100%-1.5rem)] ${
-        mode === 'thermal' && stageW > 0 && stageW < 640
+        sceneUnavailable
+          ? 'hidden'
+          : mode === 'thermal' && stageW > 0 && stageW < 640
           ? 'hidden'
           : clippingState.enabled
           ? 'hidden xl:flex'
