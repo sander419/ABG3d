@@ -1,9 +1,8 @@
-import React, { useState, Suspense, useMemo } from 'react';
+import React, { useState, Suspense, useMemo, lazy } from 'react';
 import { WidgetViewMode } from './data/panelConfig';
 import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
 import { readWidgetParamsFromLocation } from './lib/widgetParams';
 import { Header } from './components/UI/Header';
-import { PanelScene } from './components/Panel3D/PanelScene';
 import { PanelSceneSkeleton } from './components/Panel3D/PanelSceneSkeleton';
 import { CenterModeCapsule } from './components/UI/CenterModeCapsule';
 import { LeftAnatomyRail } from './components/UI/LeftAnatomyRail';
@@ -14,6 +13,12 @@ import { ProjectCalculatorModal } from './components/UI/ProjectCalculatorModal';
 import { EngineerConsultModal } from './components/UI/EngineerConsultModal';
 import { ComparisonDrawer } from './components/UI/ComparisonDrawer';
 import { Layers, Sliders, X, FileText, Calculator, HelpCircle, Columns } from 'lucide-react';
+
+// 3D-сцена тянет three.js + drei (~1.3 МБ несжатого JS) — грузим её отдельным чанком,
+// чтобы первый кадр интерфейса рисовался сразу, а модель приезжала следом (fallback = скелет).
+const PanelScene = lazy(() =>
+  import('./components/Panel3D/PanelScene').then((m) => ({ default: m.PanelScene })),
+);
 
 export const App: React.FC = () => {
   // Параметры URL (?v= / ?mode= / ?open=) читаются один раз при старте.
