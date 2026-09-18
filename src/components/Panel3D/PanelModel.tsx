@@ -10,6 +10,7 @@ import {
 } from '../../utils/textureGenerator';
 import { PeikkoHardware3D } from './PeikkoHardware3D';
 import { SwissCallout } from './SwissCallout';
+import { ThermalTag } from './ThermalTag';
 import { InvisibleHotspot, HotspotAnnotation } from './InvisibleHotspot';
 import { createPIRShaderMaterial } from './PIRShaderMaterial';
 
@@ -483,42 +484,34 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         </group>
       )}
 
-      {/* 6. THERMAL RESTRAINED INFOGRAPHIC */}
+      {/* 6. THERMAL RESTRAINED INFOGRAPHIC
+          Сами таблетки живут в <ThermalTag>: их экранные смещения считает общий проход
+          раскладки (screenAnnotationLayout), потому что проекция анкеров не гарантирует
+          зазор — на 1024–1600 px таблетки пересекались между собой, а «Снаружи» на 1366
+          накрывала плашку HUD «512px Hi-Res карты». */}
       {isThermal && !sectionFocusNarrow && (
         <group>
           {/* Outdoor Frost Tag - attached to top-left of the Facade layer */}
-          <group position={[-thermalTagX, 1.3, targetFacadeZ + dFacade / 2]}>
-            <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60 shrink-0" />
-                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
-                <span className="font-semibold text-[#1D4ED8]">-20 °C</span>
-              </div>
-            </Html>
-          </group>
+          <ThermalTag id="thermal-tag-outer" order={1} position={[-thermalTagX, 1.3, targetFacadeZ + dFacade / 2]}>
+            <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60 shrink-0" />
+            <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
+            <span className="font-semibold text-[#1D4ED8]">-20 °C</span>
+          </ThermalTag>
 
           {/* PIR Zero Isotherm Tag - attached to top-center of the PIR foam core */}
-          <group position={[0.0, 1.3, targetPIRZ]}>
-            <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3.5 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#A7F3D0]/60 shrink-0" />
-                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">0 °C:</span>
-                <span className="hidden sm:inline font-medium text-[#047857]">Внутри PIR</span>
-                <span className="sm:hidden font-medium text-[#047857]">0 °C</span>
-              </div>
-            </Html>
-          </group>
+          <ThermalTag id="thermal-tag-pir" order={2} position={[0.0, 1.3, targetPIRZ]}>
+            <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#A7F3D0]/60 shrink-0" />
+            <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">0 °C:</span>
+            <span className="hidden sm:inline font-medium text-[#047857]">Внутри PIR</span>
+            <span className="sm:hidden font-medium text-[#047857]">0 °C</span>
+          </ThermalTag>
 
           {/* Indoor Room Warmth Tag - attached to top-right of the Structural inner layer */}
-          <group position={[thermalTagX, 1.3, targetStructuralZ - dStructural / 2]}>
-            <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-              <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
-                <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse shrink-0" />
-                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>
-                <span className="font-semibold text-[#B45309]">+22 °C</span>
-              </div>
-            </Html>
-          </group>
+          <ThermalTag id="thermal-tag-inner" order={3} position={[thermalTagX, 1.3, targetStructuralZ - dStructural / 2]}>
+            <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse shrink-0" />
+            <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>
+            <span className="font-semibold text-[#B45309]">+22 °C</span>
+          </ThermalTag>
         </group>
       )}
     </group>

@@ -81,6 +81,19 @@ function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
   const isPortrait = size.width < size.height;
   const aspect = size.width / Math.max(1, size.height);
 
+  // Первый кадр и каждая смена размера сцены: камера ставится сразу в целевую позицию,
+  // без демпфирования. Иначе кадр показывает ещё «не вошедшую» в него модель: при
+  // загрузке/ресайзе камера едет от стартовой позиции (2.8, 1.2, 3.4) до целевой
+  // (на 1366×768 это дистанция 6.6 против 4.6), и низ панели на секунду упирается
+  // в нижнюю границу канваса — именно этот кадр ловился как «модель обрезана снизу».
+  const needsSnapRef = useRef(true);
+  const sizeKeyRef = useRef('');
+  const sizeKey = `${Math.round(size.width)}x${Math.round(size.height)}`;
+  if (sizeKeyRef.current !== sizeKey) {
+    sizeKeyRef.current = sizeKey;
+    needsSnapRef.current = true;
+  }
+
   // Dynamic zoom distance: on mobile portrait (aspect ~0.55), step back smoothly so panel and Swiss Callouts never clip
   const scale = isPortrait ? Math.max(1.35, 1.0 / Math.max(0.42, aspect)) : 1.0;
 
@@ -139,7 +152,11 @@ function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
       const targetY = baseY + pointerY + breathY;
       const targetZ = baseZ + breathZ;
 
-      easing.damp3(state.camera.position, [targetX, targetY, targetZ], 0.6, delta);
+      if (needsSnapRef.current) {
+        state.camera.position.set(targetX, targetY, targetZ);
+      } else {
+        easing.damp3(state.camera.position, [targetX, targetY, targetZ], 0.6, delta);
+      }
     } else {
       // Custom user-rotated view: apply organic breathing along camera's local viewport axes
       const right = new THREE.Vector3();
@@ -152,6 +169,7 @@ function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
 
       easing.damp3(state.camera.position, [targetX, targetY, targetZ], 0.6, delta);
     }
+    needsSnapRef.current = false;
 
     state.camera.lookAt(targetLookAtRef);
   });
@@ -308,6 +326,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   return (
     <div
       ref={stageRef}
+      id="scene-stage"
       className="relative w-full h-full select-none overflow-hidden bg-[#FBFBFB]"
       style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
     >
@@ -634,7 +653,10 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         </div>
 
         {/* Discreet gesture indicator pill on desktop / tablet */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/75 backdrop-blur-xs border border-black/[0.04] text-[10px] font-mono text-[#71717A]">
+        <div
+          id="gesture-hint-pill"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/75 backdrop-blur-xs border border-black/[0.04] text-[10px] font-mono text-[#71717A]"
+        >
           <span>{isInteractActive ? '1 палец: вращение 3D' : '2 пальца: 3D · 1 палец: скролл'}</span>
         </div>
       </div>

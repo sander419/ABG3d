@@ -83,7 +83,7 @@ export const App: React.FC = () => {
         {/* CENTER STAGE: 3D-СЦЕНА & ПАРИРУЮЩИЙ РЕЖИМНЫЙ КОНТРОЛЛЕР */}
         <main className="flex-1 h-full relative flex flex-col min-w-0 z-10 overflow-hidden">
           {/* Floating State Machine Capsule (Rond Design Lab Floating Text Capsule) */}
-          <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div id="center-mode-capsule" className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
             <CenterModeCapsule
               currentMode={viewMode}
               onModeChange={handleModeChange}
@@ -125,7 +125,7 @@ export const App: React.FC = () => {
               mobile action bar (App.tsx:118) or the stage controls (PanelScene.tsx:376),
               and the very same action already lives in the right rail
               (RightMetricsRail «ABG VS ГАЗОБЕТОН (ТАБЛИЦА)»). */}
-          <div className="hidden xl:flex absolute bottom-4 left-4 z-20 items-center">
+          <div id="comparison-trigger-pill" className="hidden xl:flex absolute bottom-4 left-4 z-20 items-center">
             <button
               onClick={() => setIsComparisonOpen(true)}
               className="px-3.5 py-1.5 rounded-full bg-white/85 hover:bg-white text-[#3F3F46] hover:text-[#18181B] text-[10px] font-mono uppercase tracking-[0.18em] border border-black/[0.06] shadow-xs backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -136,7 +136,7 @@ export const App: React.FC = () => {
           </div>
 
           {/* MOBILE BOTTOM MICRO-BAR (< 1024px) */}
-          <div className="lg:hidden absolute bottom-3 left-0 right-0 z-30 px-3 flex items-center justify-center gap-2 pointer-events-none">
+          <div id="mobile-action-bar" className="lg:hidden absolute bottom-3 left-0 right-0 z-30 px-3 flex items-center justify-center gap-2 pointer-events-none">
             <div className="pointer-events-auto flex items-center gap-1.5 p-1.5 rounded-full bg-white/90 backdrop-blur-xl border border-black/[0.06] shadow-sm">
               <button
                 onClick={() => setMobileDrawer(mobileDrawer === 'anatomy' ? 'none' : 'anatomy')}
