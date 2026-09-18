@@ -372,8 +372,10 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         </div>
       )}
 
-      {/* Floating touch interaction mode & camera reset controls */}
-      <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
+      {/* Floating touch interaction mode & camera reset controls.
+          Raised above the mobile action bar (<lg) so the stage controls never sit
+          on top of the bar's buttons; desktop keeps the bottom-right corner. */}
+      <div id="stage-controls-dock" className="absolute bottom-[4.5rem] lg:bottom-4 right-3 sm:right-4 z-20 flex items-center gap-2">
         {/* Cross-Section Tool Trigger Button */}
         <button
           id="cross-section-trigger-btn"
@@ -435,8 +437,12 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         </button>
       </div>
 
-      {/* Progressive procedural material status indicator + gesture hint */}
-      <div className="absolute bottom-4 left-4 z-20 flex flex-wrap items-center gap-2">
+      {/* Progressive procedural material status indicator + gesture hint.
+          Own zone at the top-left of the stage: the bottom strip belongs to the
+          comparison pill / mobile action bar / stage controls. */}
+      <div className={`absolute top-28 sm:top-32 left-3 sm:left-4 z-20 flex-col items-start gap-2 max-w-[calc(100%-1.5rem)] ${
+        clippingState.enabled ? 'hidden xl:flex' : 'flex'
+      }`}>
         <div
           id="progressive-texture-hud"
           className={`px-2.5 py-1.5 rounded-full border shadow-xs backdrop-blur-md transition-all duration-300 flex items-center gap-2 font-mono text-[10.5px] ${

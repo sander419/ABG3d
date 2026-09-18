@@ -431,8 +431,8 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       {/* 6. MINIMALIST HAIRLINE DIMENSION TICKS (When Assembled) */}
       {showDimensions && k < 0.15 && !isThermal && (
         <group position={[1.12, -1.2, 0]}>
-          <Html center distanceFactor={4.5} className="pointer-events-none select-none">
-            <div className="flex items-center gap-2 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-black/5 shadow-sm">
+          <Html center distanceFactor={4.5} zIndexRange={[15, 0]} className="pointer-events-none select-none">
+            <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-black/5 shadow-sm">
               <span className="text-[10px] uppercase text-[#A1A1AA]">Контур:</span>
               <span className="font-semibold text-[#18181B]">390 мм</span>
               <span className="text-[9px] text-[#A1A1AA]">(70 + 200 + 120)*</span>
@@ -446,7 +446,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         <group>
           {/* Outdoor Frost Tag - attached to top-left of the Facade layer */}
           <group position={[-0.65, 1.28, currentPos.current.facadeZ + dFacade / 2]}>
-            <Html center distanceFactor={4.8} className="pointer-events-none select-none">
+            <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
               <div className="flex items-center gap-2 font-mono text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60" />
                 <span className="text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
@@ -457,7 +457,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
           {/* PIR Zero Isotherm Tag - attached to top-center of the PIR foam core */}
           <group position={[0.0, 1.34, currentPos.current.pirZ]}>
-            <Html center distanceFactor={4.8} className="pointer-events-none select-none">
+            <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
               <div className="flex items-center gap-2 font-mono text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#A7F3D0]/60" />
                 <span className="text-[#71717A] text-[10px] uppercase tracking-wider">Точка 0 °C:</span>
@@ -468,7 +468,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
           {/* Indoor Room Warmth Tag - attached to top-right of the Structural inner layer */}
           <group position={[0.65, 1.28, currentPos.current.structuralZ - dStructural / 2]}>
-            <Html center distanceFactor={4.8} className="pointer-events-none select-none">
+            <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
               <div className="flex items-center gap-2 font-mono text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse" />
                 <span className="text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>

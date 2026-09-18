@@ -17,7 +17,7 @@ export const LayerDetailCard: React.FC<LayerDetailCardProps> = ({
   if (!layer) return null;
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm p-4 rounded-2xl bg-white/95 backdrop-blur-xl border border-black/[0.06] shadow-[0_10px_30px_rgba(0,0,0,0.06)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div className="absolute bottom-[7.5rem] lg:bottom-24 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm p-4 rounded-2xl bg-white/95 backdrop-blur-xl border border-black/[0.06] shadow-[0_10px_30px_rgba(0,0,0,0.06)] animate-in fade-in slide-in-from-bottom-2 duration-200">
       <div className="flex items-start justify-between gap-3 mb-1.5">
         <div>
           <div className="flex items-center gap-2">

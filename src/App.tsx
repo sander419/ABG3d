@@ -103,8 +103,12 @@ export const App: React.FC = () => {
             onClose={() => setSelectedElementId(null)}
           />
 
-          {/* Discreet Bottom Anchor: Comparison Trigger Pill */}
-          <div className="hidden sm:flex absolute bottom-4 left-4 z-20 items-center">
+          {/* Discreet Bottom Anchor: Comparison Trigger Pill.
+              Visible only from xl up: below that the floating pill would collide with the
+              mobile action bar (App.tsx:118) or the stage controls (PanelScene.tsx:376),
+              and the very same action already lives in the right rail
+              (RightMetricsRail «ABG VS ГАЗОБЕТОН (ТАБЛИЦА)»). */}
+          <div className="hidden xl:flex absolute bottom-4 left-4 z-20 items-center">
             <button
               onClick={() => setIsComparisonOpen(true)}
               className="px-3.5 py-1.5 rounded-full bg-white/85 hover:bg-white text-[#3F3F46] hover:text-[#18181B] text-[10px] font-mono uppercase tracking-[0.18em] border border-black/[0.06] shadow-xs backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer"

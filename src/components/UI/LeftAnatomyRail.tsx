@@ -105,16 +105,16 @@ export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
                     }`}
                   />
 
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[9px] text-[#71717A] tracking-wider">
+                  <div className="flex items-baseline justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-[9px] text-[#71717A] tracking-wider shrink-0">
                         {layer.index}
                       </span>
-                      <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] font-semibold text-[#18181B]">
+                      <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] font-semibold text-[#18181B] min-w-0 break-words">
                         {layer.title}
                       </h3>
                     </div>
-                    <span className="font-mono text-[10px] text-[#18181B] font-medium tracking-tight">
+                    <span className="font-mono text-[10px] text-[#18181B] font-medium tracking-tight shrink-0 whitespace-nowrap">
                       {layer.thickness}
                     </span>
                   </div>
