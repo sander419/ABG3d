@@ -19,7 +19,9 @@ export const MODE_DEFAULTS: Record<WidgetViewMode, number> = {
   assembled: 0,
   exploded: 1,
   structure: 0.55,
-  thermal: 0.15,
+  // Значение для «ТЕПЛО» держим синхронным с PanelModel (там тоже 0.45):
+  // ползунок в этом режиме пока не показывается, но константа должна совпадать.
+  thermal: 0.45,
 };
 
 /** В каких режимах пользователю доступен ползунок «РАЗБОРКА». */
