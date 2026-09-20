@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --abg-ink: #0a0a09;
-  --abg-panel: #11110f;
-  --abg-paper: #f5f2ea;
-  --abg-gold: #f4dd45;
-  --abg-gold-hover: #e4c45d;
+  color-scheme: light;
+  --abg-ink: #1d1c19;
+  --abg-charcoal: #201f1c;
+  --abg-paper: #f3f0e9;
+  --abg-stone: #d8d3c9;
+  --abg-bronze: #947552;
 }
 
 @layer base {
@@ -17,8 +17,8 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #0A0A09;
-    color: #F5F2EA;
+    background-color: var(--abg-stone);
+    color: var(--abg-ink);
     font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -33,14 +33,14 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--abg-gold);
+    outline: 2px solid var(--abg-bronze);
     outline-offset: 3px;
   }
 }
 
 ::selection {
   background: rgba(216, 181, 74, 0.32);
-  color: #ffffff;
+  color: #1d1c19;
 }
 
 .abg-skip-link {
@@ -49,11 +49,10 @@
   inset-inline-start: 0.75rem;
   z-index: 100;
   transform: translateY(-180%);
-  border-radius: 0.25rem;
-  background: var(--abg-gold);
-  color: var(--abg-ink);
+  background: var(--abg-ink);
+  color: var(--abg-paper);
   padding: 0.65rem 0.9rem;
-  font: 600 0.75rem/1 'IBM Plex Mono', monospace;
+  font: 500 0.75rem/1 'IBM Plex Sans', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   transition: transform 150ms ease-out;
@@ -63,13 +62,11 @@
   transform: translateY(0);
 }
 
-/* ABG's black exhibition field: restrained, mineral and deliberately quiet. */
+/* Quiet mineral field: the model remains the dominant visual object. */
 .abg-grid {
-  background-size: 64px 64px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    radial-gradient(circle at 50% 40%, rgba(216, 181, 74, 0.07), transparent 42%);
+  background-image:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.55), transparent 39%),
+    linear-gradient(145deg, #dedad1 0%, #d2ccc1 100%);
 }
 
 /* 6px Hotspot Pulse Animation */

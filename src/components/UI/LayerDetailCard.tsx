@@ -1,55 +1,30 @@
 import React from 'react';
-import { PANEL_CONFIG } from '../../data/panelConfig';
 import { X } from 'lucide-react';
+import { PANEL_CONFIG } from '../../data/panelConfig';
 
 interface LayerDetailCardProps {
   selectedId: string | null;
   onClose: () => void;
 }
 
-export const LayerDetailCard: React.FC<LayerDetailCardProps> = ({
-  selectedId,
-  onClose,
-}) => {
+export const LayerDetailCard: React.FC<LayerDetailCardProps> = ({ selectedId, onClose }) => {
   if (!selectedId) return null;
-
-  const layer = PANEL_CONFIG.layers.find((l) => l.id === selectedId);
+  const layer = PANEL_CONFIG.layers.find((item) => item.id === selectedId);
   if (!layer) return null;
 
   return (
-    <section id="layer-detail-dock" aria-live="polite" className="absolute bottom-20 sm:bottom-24 min-[1180px]:bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-md p-4 rounded-sm bg-[#131310]/94 backdrop-blur-2xl border border-white/12 border-t-[#F4DD45]/40 shadow-[0_20px_60px_rgba(0,0,0,0.42)] animate-in fade-in slide-in-from-bottom-2 duration-200 text-[#F5F2EA]">
-      <div className="flex items-start justify-between gap-3 mb-1.5">
+    <section id="layer-detail-dock" aria-live="polite" className="absolute bottom-20 left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 bg-[#F3F0E9]/97 p-5 text-[#1D1C19] shadow-[0_24px_70px_rgba(34,30,24,0.2)] ring-1 ring-black/10 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200 sm:bottom-24 min-[1180px]:bottom-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#F4DD45]">
-              СЛОЙ {layer.index} // {layer.thickness}
-            </span>
-          </div>
-          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-[#F5F2EA] mt-0.5">
-            {layer.title}
-          </h3>
+          <p className="text-[9px] uppercase tracking-[0.18em] text-[#8B6F4F]">Слой {layer.index} / {layer.thickness}</p>
+          <h3 className="mt-1.5 text-[20px] font-normal leading-tight tracking-[-0.035em]">{layer.title}</h3>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Закрыть сведения о слое"
-          className="min-h-9 min-w-9 rounded-sm text-[#9D998E] hover:text-white hover:bg-white/10 active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
-          title="Закрыть"
-        >
-          <X className="w-3.5 h-3.5" aria-hidden="true" />
-        </button>
+        <button onClick={onClose} aria-label="Закрыть сведения о слое" className="grid h-9 w-9 shrink-0 place-items-center text-[#777168] transition-colors hover:bg-black/5 hover:text-black"><X className="h-4 w-4" /></button>
       </div>
-
-      <p className="text-[13px] text-[#B8B4AA] leading-relaxed mb-3 text-pretty">
-        {layer.subtitle}
-      </p>
-
-      <div className="border-t border-white/10 pt-2 flex items-center justify-between">
-        <span className="text-[9px] font-mono uppercase tracking-wider text-[#77746C]">
-          Спецификация:
-        </span>
-        <span className="text-[10px] font-mono text-[#E4E0D6] text-right pl-3">
-          {layer.spec}
-        </span>
+      <p className="mt-3 text-[12px] leading-relaxed text-[#6F695F]">{layer.subtitle}</p>
+      <div className="mt-4 flex items-start justify-between gap-5 border-t border-black/12 pt-3">
+        <span className="text-[9px] uppercase tracking-[0.12em] text-[#928A7E]">Спецификация</span>
+        <span className="text-right font-mono text-[10px] text-[#34312C]">{layer.spec}</span>
       </div>
     </section>
   );

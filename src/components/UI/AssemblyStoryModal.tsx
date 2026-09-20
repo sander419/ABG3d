@@ -13,9 +13,9 @@ const steps = [
 
 export const AssemblyStoryModal: React.FC<AssemblyStoryModalProps> = ({ isOpen, onClose, onOpenCalculator }) => (
   <ModalShell isOpen={isOpen} onClose={onClose} panelClassName="max-w-3xl p-0" labelledBy="assembly-story-title">
-    <div className="bg-[#11110F] text-[#F5F2EA] pl-6 pr-14 sm:pl-8 sm:pr-16 py-7 border-b border-[#F4DD45]/30">
+    <div className="border-b border-white/10 bg-[#201F1C] py-7 pl-6 pr-14 text-[#F3F0E9] sm:pl-8 sm:pr-16">
       <button onClick={onClose} aria-label="Закрыть" className="absolute top-4 right-4 p-2 rounded-sm text-[#A9A59B] hover:text-white hover:bg-white/10 active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer"><X className="w-5 h-5" /></button>
-      <p className="font-mono text-[9px] uppercase tracking-[0.26em] text-[#F4DD45]">AUTOBIOGRAPHY / монтажная логика</p>
+      <p className="text-[9px] uppercase tracking-[0.26em] text-[#B89A70]">AUTOBIOGRAPHY / монтажная логика</p>
       <h2 id="assembly-story-title" className="mt-2 text-2xl sm:text-3xl tracking-[-0.04em] font-medium">Как панель становится домом</h2>
       <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#B8B4AA]">Наглядная последовательность для предварительного знакомства. Финальная технология монтажа задаётся проектом производства работ.</p>
     </div>
@@ -28,7 +28,7 @@ export const AssemblyStoryModal: React.FC<AssemblyStoryModalProps> = ({ isOpen, 
       </div>
       <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <p className="text-[11px] leading-relaxed text-[#77746C]">Для точного узла нужны КЖ, серия панели и условия конкретного объекта.</p>
-        <button onClick={onOpenCalculator} className="shrink-0 px-5 py-3 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] text-[#181814] text-[10px] font-mono uppercase tracking-[0.16em] active:scale-[0.96] transition-[transform,background-color] cursor-pointer">Запросить расчёт</button>
+        <button onClick={onOpenCalculator} className="shrink-0 cursor-pointer bg-[#1D1C19] px-5 py-3 text-[10px] uppercase tracking-[0.12em] text-white transition-[transform,background-color] hover:bg-[#34312C] active:scale-[0.98]">Запросить расчёт</button>
       </div>
     </div>
   </ModalShell>

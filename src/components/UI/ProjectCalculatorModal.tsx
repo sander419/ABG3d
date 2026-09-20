@@ -58,7 +58,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
       <button
         onClick={onClose}
         aria-label="Закрыть калькулятор"
-        className="absolute top-4 right-4 sm:top-5 sm:right-5 min-h-10 min-w-10 rounded-sm text-[#77746C] hover:bg-[#F4DD45]/15 hover:text-[#181814] active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
+        className="absolute right-4 top-4 inline-flex min-h-10 min-w-10 cursor-pointer items-center justify-center text-[#77746C] transition-[transform,background-color,color] hover:bg-black/5 hover:text-[#181814] active:scale-[0.96] sm:right-5 sm:top-5"
       >
         <X className="w-4 h-4" aria-hidden="true" />
       </button>
@@ -231,7 +231,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
             type="submit"
             disabled={isSubmitting}
             data-testid="calculator-submit"
-            className="w-full min-h-12 py-3 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] disabled:bg-[#A9A59B] disabled:cursor-wait text-[#181814] font-mono text-xs uppercase tracking-[0.16em] font-semibold active:scale-[0.96] transition-[transform,background-color] cursor-pointer flex items-center justify-center gap-2"
+            className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 bg-[#1D1C19] py-3 text-xs font-medium tracking-[0.06em] text-white transition-[transform,background-color] hover:bg-[#34312C] active:scale-[0.98] disabled:cursor-wait disabled:bg-[#A9A59B]"
           >
             {isSubmitting ? (
               <>

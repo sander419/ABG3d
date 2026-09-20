@@ -1,15 +1,22 @@
 import React from 'react';
-import { WidgetViewMode } from '../../data/panelConfig';
 import { Eye, Flame } from 'lucide-react';
+import { WidgetViewMode } from '../../data/panelConfig';
 
 interface CenterModeCapsuleProps {
   currentMode: WidgetViewMode;
   onModeChange: (mode: WidgetViewMode) => void;
   scrubValue: number;
-  onScrubChange: (val: number) => void;
+  onScrubChange: (value: number) => void;
   showDimensions: boolean;
   onToggleDimensions: () => void;
 }
+
+const modes: { id: WidgetViewMode; label: string }[] = [
+  { id: 'exploded', label: 'Слои' },
+  { id: 'assembled', label: 'Собрана' },
+  { id: 'structure', label: 'Арматура' },
+  { id: 'thermal', label: 'Тепловая схема' },
+];
 
 export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
   currentMode,
@@ -18,104 +25,57 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
   onScrubChange,
   showDimensions,
   onToggleDimensions,
-}) => {
-  const modes: { id: WidgetViewMode; label: string; micro: string }[] = [
-    { id: 'exploded', label: 'РАЗОБРАН', micro: 'Слои' },
-    { id: 'assembled', label: 'СБОРКА', micro: '390 мм' },
-    { id: 'structure', label: 'АРМАТУРА', micro: 'Peikko' },
-    { id: 'thermal', label: 'ТЕПЛО', micro: 'Схема' },
-  ];
-
-  return (
-    <div className="relative flex flex-col items-center gap-2 select-none pointer-events-none">
-      {/* Mode Buttons - Minimalist Borderless Floating Text Capsule */}
-      <div role="group" aria-label="Режим отображения панели" className="pointer-events-auto flex items-center gap-1 p-1 rounded-md bg-[#11110F]/94 backdrop-blur-2xl border border-white/15 shadow-[0_14px_42px_rgba(0,0,0,0.42)] transition-[background-color,border-color,box-shadow] duration-200">
-        {modes.map((m) => {
-          const isActive = currentMode === m.id;
-          const isThermal = m.id === 'thermal';
-
-          return (
-            <div
-              key={m.id}
-              className="relative flex items-center"
-            >
-              <button
-                id={`mode-${m.id}-btn`}
-                onClick={() => onModeChange(m.id)}
-                aria-pressed={isActive}
-                className={`min-h-10 px-2.5 sm:px-3 rounded-sm font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.12em] active:scale-[0.96] transition-[transform,background-color,color,box-shadow] duration-150 flex items-center gap-1.5 cursor-pointer touch-manipulation whitespace-nowrap ${
-                  isActive
-                    ? 'bg-[#F4DD45] text-[#11110F] font-semibold shadow-xs'
-                    : 'text-[#B8B4AA] hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {isThermal && (
-                  <Flame
-                  className={`w-3.5 h-3.5 transition-colors ${
-                      isActive ? 'text-[#11110F]' : 'text-[#F4DD45]'
-                    }`}
-                  />
-                )}
-                <span>{m.label}</span>
-                <span
-                  className={`text-[9px] tracking-wider hidden md:inline ${
-                    isActive ? 'text-[#534719]' : 'text-[#77746C]'
-                  }`}
-                >
-                  {m.micro}
-                </span>
-              </button>
-
-            </div>
-          );
-        })}
-
-        {/* Micro divider */}
-        <div className="w-[1px] h-4 bg-white/15 mx-1 hidden sm:block" />
-
-        {/* Dimension Lines Toggle */}
-        <button
-          onClick={onToggleDimensions}
-          aria-pressed={showDimensions}
-          className={`min-h-10 px-2.5 rounded-sm font-mono text-[10px] uppercase tracking-wider active:scale-[0.96] transition-[transform,color,background-color] hidden sm:flex items-center gap-1 cursor-pointer ${
-            showDimensions
-              ? 'text-[#F4DD45] font-semibold'
-              : 'text-[#77746C] hover:text-white'
-          }`}
-          title="Вкл/выкл выносные размерные линии"
-        >
-          <Eye className="w-3 h-3" />
-          <span>РАЗМЕРЫ</span>
-        </button>
-      </div>
-
-      {currentMode === 'thermal' && (
-        <div className="max-w-[calc(100vw-2rem)] rounded-sm bg-[#11110F]/95 border border-white/10 px-3 py-2 text-center text-[11px] leading-relaxed text-[#B8B4AA]">
-          <span className="text-[#9BC3EB]">Снаружи</span> → теплоизоляция → <span className="text-[#E4BA78]">интерьер</span>
-          <p className="text-[10px] text-[#969187]">Цветовая иллюстрация, не теплотехнический расчёт</p>
-        </div>
-      )}
-      {/* Interactive Micro Scrubber when in Exploded or Structure Mode */}
-      {(currentMode === 'exploded' || currentMode === 'structure') && (
-        <div className="pointer-events-auto flex items-center gap-3 px-3 py-2 rounded-md bg-[#11110F]/94 backdrop-blur-xl border border-white/10 text-xs font-mono text-[#B8B4AA] transition-[opacity,transform] duration-200 animate-in fade-in">
-          <label htmlFor="panel-explode-range" className="text-[10px] uppercase tracking-wider text-[#969187]">
-            РАЗБОРКА
-          </label>
-          <input
-            id="panel-explode-range"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={scrubValue}
-            onChange={(e) => onScrubChange(parseFloat(e.target.value))}
-            className="w-20 sm:w-36 accent-[#F4DD45] cursor-pointer h-1 bg-white/15 rounded-lg appearance-none touch-manipulation"
-          />
-            <span className="text-[10px] tabular-nums uppercase font-semibold text-[#F5F2EA] min-w-[32px] text-right">
-            {Math.round(scrubValue * 100)}%
-          </span>
-        </div>
-      )}
+}) => (
+  <div className="pointer-events-none flex max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 select-none">
+    <div role="group" aria-label="Режим отображения панели" className="pointer-events-auto flex items-center bg-[#F4F1EA]/95 p-1 shadow-[0_18px_48px_rgba(31,28,22,0.14)] ring-1 ring-black/10 backdrop-blur-xl">
+      {modes.map((mode) => {
+        const active = currentMode === mode.id;
+        return (
+          <button
+            key={mode.id}
+            id={`mode-${mode.id}-btn`}
+            onClick={() => onModeChange(mode.id)}
+            aria-pressed={active}
+            className={`flex min-h-10 items-center gap-1.5 px-3 text-[11px] tracking-[-0.01em] transition-colors sm:px-4 ${active ? 'bg-[#1D1C19] text-white' : 'text-[#6E685E] hover:bg-black/[0.045] hover:text-[#1D1C19]'}`}
+          >
+            {mode.id === 'thermal' && <Flame className={`h-3.5 w-3.5 ${active ? 'text-[#B89A70]' : 'text-[#8B7354]'}`} />}
+            <span>{mode.label}</span>
+          </button>
+        );
+      })}
+      <span className="mx-1 hidden h-4 w-px bg-black/10 sm:block" />
+      <button
+        onClick={onToggleDimensions}
+        aria-pressed={showDimensions}
+        title="Показать размеры панели"
+        className={`hidden min-h-10 items-center gap-1.5 px-3 text-[11px] transition-colors sm:flex ${showDimensions ? 'text-[#846846]' : 'text-[#777168] hover:text-[#1D1C19]'}`}
+      >
+        <Eye className="h-3.5 w-3.5" />
+        Размеры
+      </button>
     </div>
-  );
-};
+
+    {currentMode === 'thermal' && (
+      <div className="max-w-lg bg-[#F4F1EA]/95 px-4 py-2 text-center text-[11px] leading-relaxed text-[#6E685E] shadow-sm ring-1 ring-black/10">
+        Наружный слой → теплоизоляция → интерьер. Цвет показывает принцип, а не заменяет теплотехнический расчёт.
+      </div>
+    )}
+
+    {(currentMode === 'exploded' || currentMode === 'structure') && (
+      <label htmlFor="panel-explode-range" className="pointer-events-auto flex items-center gap-3 bg-[#F4F1EA]/95 px-4 py-2.5 text-[11px] text-[#777168] shadow-sm ring-1 ring-black/10 backdrop-blur-xl">
+        <span>Степень раскрытия</span>
+        <input
+          id="panel-explode-range"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={scrubValue}
+          onChange={(event) => onScrubChange(Number(event.target.value))}
+          className="h-0.5 w-24 cursor-pointer appearance-none bg-black/15 accent-[#8B7354] sm:w-40"
+        />
+        <span className="min-w-8 text-right font-mono text-[10px] tabular-nums text-[#34312C]">{Math.round(scrubValue * 100)}%</span>
+      </label>
+    )}
+  </div>
+);

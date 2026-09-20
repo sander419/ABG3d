@@ -240,7 +240,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   return (
     <div
       ref={stageRef}
-      className="relative w-full h-full select-none overflow-hidden bg-[#121210]"
+      className="relative h-full w-full select-none overflow-hidden bg-[#D8D3C9]"
       style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
     >
       {/* 3D WebGL Canvas. Wrapped in an ErrorBoundary: a failed 3D mount (WebGL,
@@ -296,7 +296,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
             drei's `preset` pulls a ~1.5 MB map from raw.githack.com inside Suspense,
             so one blocked third-party request used to blank the whole widget. */}
         <Environment resolution={256} frames={1} environmentIntensity={0.55}>
-            <color attach="background" args={['#121210']} />
+            <color attach="background" args={['#D8D3C9']} />
           {/* Large soft key box above and slightly behind the slab */}
           <Lightformer
             form="rect"
@@ -429,10 +429,10 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         <button
           id="cross-section-trigger-btn"
           onClick={handleToggleClipping}
-          className={`px-3 py-1.5 rounded-full font-mono text-[11px] tracking-tight flex items-center gap-1.5 border shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer ${
+          className={`flex min-h-9 cursor-pointer items-center gap-1.5 border px-3 py-1.5 text-[11px] tracking-tight shadow-sm backdrop-blur-md transition-all duration-200 ${
             clippingState.enabled
-              ? 'bg-[#F4DD45] text-[#121210] border-[#F4DD45] shadow-md ring-2 ring-[#F4DD45]/25'
-              : 'bg-[#151513]/90 text-[#D8D4C8] hover:text-white hover:bg-[#20201C] border-white/15'
+              ? 'border-[#1D1C19] bg-[#1D1C19] text-white shadow-md'
+              : 'border-black/10 bg-[#F3F0E9]/90 text-[#5F5A51] hover:bg-white hover:text-black'
           }`}
           title={
             clippingState.enabled
@@ -440,7 +440,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
               : 'Инструмент сечения (Clipping Plane): послойный разрез панели и обнажение связей'
           }
         >
-          <Scissors className={`w-3.5 h-3.5 shrink-0 ${clippingState.enabled ? 'text-[#121210]' : 'text-[#F4DD45]'}`} />
+          <Scissors className={`h-3.5 w-3.5 shrink-0 ${clippingState.enabled ? 'text-[#B89A70]' : 'text-[#8B7354]'}`} />
           <span className="font-medium whitespace-nowrap">
             {clippingState.enabled ? 'Сечение ВКЛ' : 'Сечение'}
           </span>
@@ -450,10 +450,10 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         <button
           id="orbit-interact-toggle"
           onClick={() => setIsInteractActive((prev) => !prev)}
-          className={`px-3 py-1.5 rounded-full font-mono text-[11px] tracking-tight flex items-center gap-1.5 border shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer ${
+          className={`flex min-h-9 cursor-pointer items-center gap-1.5 border px-3 py-1.5 text-[11px] tracking-tight shadow-sm backdrop-blur-md transition-all duration-200 ${
             isInteractActive
-              ? 'bg-[#F4DD45] text-[#121210] border-[#F4DD45] shadow-md ring-2 ring-[#F4DD45]/25'
-              : 'bg-[#151513]/90 text-[#D8D4C8] hover:text-white hover:bg-[#20201C] border-white/15'
+              ? 'border-[#1D1C19] bg-[#1D1C19] text-white shadow-md'
+              : 'border-black/10 bg-[#F3F0E9]/90 text-[#5F5A51] hover:bg-white hover:text-black'
           }`}
           title={
             isInteractActive
@@ -463,13 +463,13 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         >
           {isInteractActive ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-[#121210] animate-pulse shrink-0" />
-              <Move3d className="w-3.5 h-3.5 text-[#121210] shrink-0" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-[#B89A70] animate-pulse" />
+              <Move3d className="h-3.5 w-3.5 shrink-0 text-[#B89A70]" />
               <span className="font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap">3D Режим Вкл</span>
             </>
           ) : (
             <>
-              <Hand className="w-3.5 h-3.5 text-[#F4DD45] shrink-0" />
+              <Hand className="h-3.5 w-3.5 shrink-0 text-[#8B7354]" />
               <span className="font-medium whitespace-nowrap">3D Обзор</span>
             </>
           )}
@@ -479,7 +479,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         <button
           id="orbit-reset-camera-btn"
           onClick={resetCamera}
-          className="p-2 rounded-full bg-[#151513]/90 hover:bg-[#20201C] text-[#B8B4AA] hover:text-white border border-white/15 shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer"
+          className="cursor-pointer border border-black/10 bg-[#F3F0E9]/90 p-2 text-[#6F695F] shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black"
           title="Сбросить ракурс камеры"
         >
           <RotateCw className="w-3.5 h-3.5" />

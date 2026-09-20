@@ -1,4 +1,5 @@
-import React, { useState, Suspense, useMemo, useEffect, lazy } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { Calculator, Layers3, SlidersHorizontal, X } from 'lucide-react';
 import { WidgetViewMode } from './data/panelConfig';
 import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
 import { readWidgetParamsFromLocation } from './lib/widgetParams';
@@ -14,36 +15,22 @@ import { ProjectCalculatorModal } from './components/UI/ProjectCalculatorModal';
 import { EngineerConsultModal } from './components/UI/EngineerConsultModal';
 import { ComparisonDrawer } from './components/UI/ComparisonDrawer';
 import { AssemblyStoryModal } from './components/UI/AssemblyStoryModal';
-import { Layers, Sliders, X, Calculator } from 'lucide-react';
 
-// 3D-сцена тянет three.js + drei (~1.3 МБ несжатого JS) — грузим её отдельным чанком,
-// чтобы первый кадр интерфейса рисовался сразу, а модель приезжала следом (fallback = скелет).
-const PanelScene = lazy(() =>
-  import('./components/Panel3D/PanelScene').then((m) => ({ default: m.PanelScene })),
-);
+const PanelScene = lazy(() => import('./components/Panel3D/PanelScene').then((module) => ({ default: module.PanelScene })));
 
 export const App: React.FC = () => {
-  // Параметры URL (?v= / ?mode= / ?open=) читаются один раз при старте.
-  // До рефакторинга ?v=thermal2 был мёртвым: код его не читал вообще.
   const initialParams = useMemo(() => readWidgetParamsFromLocation(), []);
   const isEmbedded = initialParams.embedded;
-  // Sales entry point: a finished architectural element reads as a product;
-  // engineering exploration is an intentional second step.
   const initialMode: WidgetViewMode = initialParams.mode ?? 'assembled';
-
   const [viewMode, setViewMode] = useState<WidgetViewMode>(initialMode);
-  const [scrubValue, setScrubValue] = useState<number>(MODE_DEFAULTS[initialMode]);
+  const [scrubValue, setScrubValue] = useState(MODE_DEFAULTS[initialMode]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [showDimensions, setShowDimensions] = useState<boolean>(true);
-  const [show2DFallback, setShow2DFallback] = useState<boolean>(false);
-
-  // Modals state (?open=calc|consult|compare|assembly открывает нужную сразу)
-  const [isCalcOpen, setIsCalcOpen] = useState<boolean>(initialParams.overlay === 'calc');
-  const [isConsultOpen, setIsConsultOpen] = useState<boolean>(initialParams.overlay === 'consult');
-  const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(initialParams.overlay === 'compare');
-  const [isAssemblyOpen, setIsAssemblyOpen] = useState<boolean>(initialParams.overlay === 'assembly');
-
-  // Mobile drawer state ('none' | 'anatomy' | 'metrics')
+  const [showDimensions, setShowDimensions] = useState(true);
+  const [show2DFallback, setShow2DFallback] = useState(false);
+  const [isCalcOpen, setIsCalcOpen] = useState(initialParams.overlay === 'calc');
+  const [isConsultOpen, setIsConsultOpen] = useState(initialParams.overlay === 'consult');
+  const [isComparisonOpen, setIsComparisonOpen] = useState(initialParams.overlay === 'compare');
+  const [isAssemblyOpen, setIsAssemblyOpen] = useState(initialParams.overlay === 'assembly');
   const [mobileDrawer, setMobileDrawer] = useState<'none' | 'anatomy' | 'metrics'>('none');
   const overlayOpen = isCalcOpen || isConsultOpen || isComparisonOpen || isAssemblyOpen;
 
@@ -54,251 +41,60 @@ export const App: React.FC = () => {
     if (patch.clearSelection) setSelectedElementId(null);
   };
 
-  // Мост для страницы-хоста (iframe-встраивание на сайт ABG): режим и модалки уходят
-  // наружу через postMessage. Контракт — src/lib/widgetEvents.ts, пример приёмника —
-  // public/embed-demo.html. Никаких ПДн в событиях нет.
   useEffect(() => {
     emitWidgetEvent('abg3d:mode', { mode: viewMode });
   }, [viewMode]);
-
   useEffect(() => {
     const overlay = isCalcOpen ? 'calc' : isConsultOpen ? 'consult' : isComparisonOpen ? 'compare' : isAssemblyOpen ? 'assembly' : null;
     emitWidgetEvent('abg3d:overlay', { overlay, open: overlay !== null });
   }, [isCalcOpen, isConsultOpen, isComparisonOpen, isAssemblyOpen]);
 
   return (
-    <div className="h-screen h-[100dvh] w-screen overflow-hidden bg-[#0A0A09] text-[#F5F2EA] flex flex-col relative font-sans antialiased">
-      <a href="#main-content" className="abg-skip-link">К интерактивной модели</a>
-      {/* Background subtle architectural hair-grid */}
-      <div className="absolute inset-0 abg-grid pointer-events-none opacity-60 z-0" />
-
-      {/* Страница-хост уже несёт бренд: в iframe не дублируем логотип и ссылку. */}
-      {!isEmbedded && (
-        <div inert={overlayOpen ? true : undefined} aria-hidden={overlayOpen || undefined}>
-          <Header />
-        </div>
-      )}
-
-      {/* 2. Main Zero-Scroll 3-Column Studio Layout */}
-      <div inert={overlayOpen ? true : undefined} aria-hidden={overlayOpen || undefined} className="flex-1 w-full min-h-0 relative flex overflow-hidden z-10">
-        {/* DESKTOP LEFT COLUMN: АНАТОМИЯ И КОНСТРУКТИВ PEIKKO */}
-        <div className="hidden min-[1180px]:flex absolute inset-y-4 left-4 w-[260px] 2xl:w-[304px] border border-white/10 bg-[#0E0E0D]/92 backdrop-blur-2xl flex-col z-20 rounded-sm shadow-[0_24px_80px_rgba(0,0,0,0.28)] overflow-hidden">
-          <LeftAnatomyRail
-            selectedId={selectedElementId}
-            onSelect={(id) => setSelectedElementId(id)}
-            currentMode={viewMode}
-          />
-        </div>
-
-        {/* CENTER STAGE: 3D-СЦЕНА & ПАРИРУЮЩИЙ РЕЖИМНЫЙ КОНТРОЛЛЕР */}
-        <main id="main-content" className="flex-1 h-full relative flex flex-col min-w-0 z-10 overflow-hidden" tabIndex={-1}>
-          {/* Floating State Machine Capsule (Rond Design Lab Floating Text Capsule) */}
-          <div hidden={show2DFallback} className="absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100vw-1rem)]">
-            <CenterModeCapsule
-              currentMode={viewMode}
-              onModeChange={handleModeChange}
-              scrubValue={scrubValue}
-              onScrubChange={(val) => setScrubValue(val)}
-              showDimensions={showDimensions}
-              onToggleDimensions={() => setShowDimensions(!showDimensions)}
-            />
+    <div className="relative flex h-screen h-[100dvh] w-screen flex-col overflow-hidden bg-[#D8D3C9] text-[#181714] antialiased">
+      <a href="#main-content" className="abg-skip-link">К модели панели</a>
+      {!isEmbedded && <div inert={overlayOpen || undefined} aria-hidden={overlayOpen || undefined}><Header /></div>}
+      <div inert={overlayOpen || undefined} aria-hidden={overlayOpen || undefined} className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 z-10 hidden min-[1180px]:block">
+          <div className="pointer-events-auto absolute inset-y-6 left-6 w-[276px] overflow-hidden bg-[#F3F0E9]/95 shadow-[0_28px_90px_rgba(38,34,27,0.12)] ring-1 ring-black/[0.08] backdrop-blur-xl">
+            <LeftAnatomyRail selectedId={selectedElementId} onSelect={setSelectedElementId} currentMode={viewMode} />
           </div>
-
-          {/* Interactive 3D Model Scene or 2D Architectural Blueprint */}
+          <div className="pointer-events-auto absolute inset-y-6 right-6 w-[276px] overflow-hidden bg-[#1B1A17]/96 text-[#F3F0E9] shadow-[0_28px_90px_rgba(38,34,27,0.18)] ring-1 ring-black/20 backdrop-blur-xl">
+            <RightMetricsRail currentMode={viewMode} onModeChange={handleModeChange} onOpenCalculator={() => setIsCalcOpen(true)} onOpenConsult={() => setIsConsultOpen(true)} onOpenComparison={() => setIsComparisonOpen(true)} onOpenAssembly={() => setIsAssemblyOpen(true)} onToggle2D={() => setShow2DFallback((value) => !value)} is2DActive={show2DFallback} selectedId={selectedElementId} />
+          </div>
+        </div>
+        <main id="main-content" tabIndex={-1} className="relative h-full w-full overflow-hidden">
+          <div hidden={show2DFallback} className="pointer-events-none absolute left-1/2 top-4 z-30 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 sm:top-6">
+            <CenterModeCapsule currentMode={viewMode} onModeChange={handleModeChange} scrubValue={scrubValue} onScrubChange={setScrubValue} showDimensions={showDimensions} onToggleDimensions={() => setShowDimensions((value) => !value)} />
+          </div>
           {show2DFallback ? (
-            <div className="w-full h-full px-3 pt-3 pb-20 min-[1180px]:px-[292px] min-[1180px]:py-4 2xl:px-[336px] flex items-center justify-center">
-              <FallbackBlueprint
-                onClose={() => setShow2DFallback(false)}
-                onSelectLayer={(id) => { setSelectedElementId(id); setShow2DFallback(false); }}
-              />
-            </div>
+            <div className="flex h-full w-full items-center justify-center px-3 pb-20 pt-3 min-[1180px]:px-[326px] min-[1180px]:py-6"><FallbackBlueprint onClose={() => setShow2DFallback(false)} onSelectLayer={(id) => { setSelectedElementId(id); setShow2DFallback(false); }} /></div>
           ) : (
-            <Suspense fallback={<PanelSceneSkeleton />}>
-              <PanelScene
-                mode={viewMode}
-                scrubProgress={scrubPropFor(viewMode, scrubValue)}
-                selectedId={selectedElementId}
-                onSelect={(id) => setSelectedElementId(id)}
-                showDimensions={showDimensions}
-              />
-            </Suspense>
+            <Suspense fallback={<PanelSceneSkeleton />}><PanelScene mode={viewMode} scrubProgress={scrubPropFor(viewMode, scrubValue)} selectedId={selectedElementId} onSelect={setSelectedElementId} showDimensions={showDimensions} /></Suspense>
           )}
-
-          {/* Selected Layer Micro-Placard (Center Bottom) */}
-          <LayerDetailCard
-            selectedId={selectedElementId}
-            onClose={() => setSelectedElementId(null)}
-          />
-
-          {/* Discreet Bottom Anchor: Comparison Trigger Pill.
-              Visible only from xl up: below that the floating pill would collide with the
-              mobile action bar (App.tsx:118) or the stage controls (PanelScene.tsx:376),
-              and the very same action already lives in the right rail
-              (RightMetricsRail «ABG VS ГАЗОБЕТОН (ТАБЛИЦА)»). */}
-          <div className={`${show2DFallback ? 'hidden' : 'hidden min-[1180px]:flex'} absolute bottom-5 left-5 z-20 items-center`}>
-            <button
-              onClick={() => setIsComparisonOpen(true)}
-              className="px-3.5 py-2 rounded-sm bg-[#151513]/90 hover:bg-[#1C1C19] text-[#D8D4C8] hover:text-white text-[10px] font-mono uppercase tracking-[0.16em] border border-white/10 backdrop-blur-md transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F4DD45]" />
-              <span>Сравнить технологии строительства</span>
-            </button>
-          </div>
-
-          {/* MOBILE BOTTOM MICRO-BAR (< 1024px) */}
-          <nav aria-label="Действия с моделью" className="min-[1180px]:hidden absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-0 right-0 z-30 px-3 flex items-center justify-center gap-2 pointer-events-none">
-            <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-md bg-[#121210]/94 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.45)]">
-              <button
-                onClick={() => setMobileDrawer(mobileDrawer === 'anatomy' ? 'none' : 'anatomy')}
-                aria-expanded={mobileDrawer === 'anatomy'}
-                aria-controls="mobile-information-drawer"
-                className={`min-h-10 px-3 rounded-sm font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-[0.96] transition-[transform,background-color,color] ${
-                  mobileDrawer === 'anatomy'
-                    ? 'bg-[#F4DD45] text-[#121210]'
-                    : 'text-[#B8B4AA] hover:text-white'
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                <span>Анатомия</span>
-              </button>
-
-              <button
-                onClick={() => setMobileDrawer(mobileDrawer === 'metrics' ? 'none' : 'metrics')}
-                aria-expanded={mobileDrawer === 'metrics'}
-                aria-controls="mobile-information-drawer"
-                className={`min-h-10 px-3 rounded-sm font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-[0.96] transition-[transform,background-color,color] ${
-                  mobileDrawer === 'metrics'
-                    ? 'bg-[#F4DD45] text-[#121210]'
-                    : 'text-[#B8B4AA] hover:text-white'
-                }`}
-              >
-                <Sliders className="w-3 h-3" />
-                <span>Показатели</span>
-              </button>
-
-              <button
-                onClick={() => setIsCalcOpen(true)}
-                className="min-h-10 px-3 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-[#F4DD45] hover:bg-[#F8E66A] text-[#121210] font-semibold flex items-center gap-1 active:scale-[0.96] transition-[transform,background-color]"
-              >
-                <Calculator className="w-3 h-3" />
-                <span>Расчет</span>
-              </button>
+          <LayerDetailCard selectedId={selectedElementId} onClose={() => setSelectedElementId(null)} />
+          <nav aria-label="Разделы модели" className="absolute inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-3 min-[1180px]:hidden">
+            <div className="flex items-center gap-1 bg-[#F5F2EB]/95 p-1.5 text-[#1B1A17] shadow-[0_18px_54px_rgba(31,28,23,0.2)] ring-1 ring-black/10 backdrop-blur-xl">
+              <button onClick={() => setMobileDrawer(mobileDrawer === 'anatomy' ? 'none' : 'anatomy')} aria-expanded={mobileDrawer === 'anatomy'} aria-controls="mobile-information-drawer" className={`flex min-h-11 items-center gap-2 px-3 text-[12px] transition-[background-color,color,transform] active:scale-[0.96] ${mobileDrawer === 'anatomy' ? 'bg-[#1B1A17] text-white' : 'text-[#5F5A51]'}`}><Layers3 className="h-4 w-4" /><span>Слои</span></button>
+              <button onClick={() => setMobileDrawer(mobileDrawer === 'metrics' ? 'none' : 'metrics')} aria-expanded={mobileDrawer === 'metrics'} aria-controls="mobile-information-drawer" className={`flex min-h-11 items-center gap-2 px-3 text-[12px] transition-[background-color,color,transform] active:scale-[0.96] ${mobileDrawer === 'metrics' ? 'bg-[#1B1A17] text-white' : 'text-[#5F5A51]'}`}><SlidersHorizontal className="h-4 w-4" /><span>Проект</span></button>
+              <button onClick={() => setIsCalcOpen(true)} className="flex min-h-11 items-center gap-2 bg-[#9B805B] px-4 text-[12px] font-medium text-white transition-[background-color,transform] hover:bg-[#856B4A] active:scale-[0.96]"><Calculator className="h-4 w-4" /><span>Расчёт</span></button>
             </div>
           </nav>
         </main>
-
-        {/* DESKTOP RIGHT COLUMN: ИНТЕРАКТИВНЫЕ ПРЕИМУЩЕСТВА & CTA */}
-        <div className="hidden min-[1180px]:flex absolute inset-y-4 right-4 w-[260px] 2xl:w-[304px] border border-white/10 bg-[#0E0E0D]/92 backdrop-blur-2xl flex-col z-20 rounded-sm shadow-[0_24px_80px_rgba(0,0,0,0.28)] overflow-hidden">
-          <RightMetricsRail
-            currentMode={viewMode}
-            onModeChange={handleModeChange}
-            onOpenCalculator={() => setIsCalcOpen(true)}
-            onOpenConsult={() => setIsConsultOpen(true)}
-            onOpenComparison={() => setIsComparisonOpen(true)}
-            onOpenAssembly={() => setIsAssemblyOpen(true)}
-            onToggle2D={() => setShow2DFallback(!show2DFallback)}
-            is2DActive={show2DFallback}
-            selectedId={selectedElementId}
-          />
-        </div>
       </div>
-
-      {/* MOBILE EXPANDABLE DRAWER (< 1024px) */}
       {mobileDrawer !== 'none' && (
-        <div className="min-[1180px]:hidden fixed inset-0 z-40 flex flex-col justify-end bg-black/55 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setMobileDrawer('none')}>
-          <div
-            id="mobile-information-drawer"
-            role="dialog"
-            aria-modal="true"
-            aria-label={mobileDrawer === 'anatomy' ? 'Анатомия панели' : 'Показатели системы'}
-            className="w-full max-h-[78vh] bg-[#11110F] rounded-t-md border-t border-[#F4DD45]/35 shadow-[0_-24px_70px_rgba(0,0,0,0.55)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 flex flex-col overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drawer Drag handle & close */}
-            <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center pb-3">
-              <span aria-hidden="true" />
-              <div className="w-12 h-1 rounded-full bg-[#F4DD45]/70 mx-auto" aria-hidden="true" />
-              <button
-                onClick={() => setMobileDrawer('none')}
-                aria-label="Закрыть панель"
-                className="min-h-10 min-w-10 rounded-sm text-[#9D998E] hover:text-white hover:bg-white/10 active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
-              >
-                <X className="w-4 h-4" aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pt-2">
-              {mobileDrawer === 'anatomy' ? (
-                <LeftAnatomyRail
-                  selectedId={selectedElementId}
-                  onSelect={(id) => {
-                    setSelectedElementId(id);
-                    setMobileDrawer('none');
-                  }}
-                  currentMode={viewMode}
-                />
-              ) : (
-                <RightMetricsRail
-                  currentMode={viewMode}
-                  onModeChange={handleModeChange}
-                  onOpenCalculator={() => {
-                    setMobileDrawer('none');
-                    setIsCalcOpen(true);
-                  }}
-                  onOpenConsult={() => {
-                    setMobileDrawer('none');
-                    setIsConsultOpen(true);
-                  }}
-                  onOpenComparison={() => {
-                    setMobileDrawer('none');
-                    setIsComparisonOpen(true);
-                  }}
-                  onOpenAssembly={() => {
-                    setMobileDrawer('none');
-                    setIsAssemblyOpen(true);
-                  }}
-                  onToggle2D={() => {
-                    setMobileDrawer('none');
-                    setShow2DFallback(!show2DFallback);
-                  }}
-                  is2DActive={show2DFallback}
-                  selectedId={selectedElementId}
-                />
-              )}
+        <div className="fixed inset-0 z-40 flex flex-col justify-end bg-[#181714]/35 backdrop-blur-sm min-[1180px]:hidden" onClick={() => setMobileDrawer('none')}>
+          <div id="mobile-information-drawer" role="dialog" aria-modal="true" aria-label={mobileDrawer === 'anatomy' ? 'Слои панели' : 'Параметры проекта'} onClick={(event) => event.stopPropagation()} className={`max-h-[82vh] overflow-hidden px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-28px_80px_rgba(28,25,21,0.2)] ${mobileDrawer === 'anatomy' ? 'bg-[#F3F0E9] text-[#181714]' : 'bg-[#1B1A17] text-[#F3F0E9]'}`}>
+            <div className="mb-2 flex justify-end"><button onClick={() => setMobileDrawer('none')} aria-label="Закрыть панель" className="flex h-11 w-11 items-center justify-center text-current opacity-60 transition-[opacity,transform] hover:opacity-100 active:scale-[0.96]"><X className="h-5 w-5" /></button></div>
+            <div className="max-h-[calc(82vh-4rem)] overflow-y-auto">
+              {mobileDrawer === 'anatomy' ? <LeftAnatomyRail selectedId={selectedElementId} onSelect={(id) => { setSelectedElementId(id); setMobileDrawer('none'); }} currentMode={viewMode} /> : <RightMetricsRail currentMode={viewMode} onModeChange={handleModeChange} onOpenCalculator={() => { setMobileDrawer('none'); setIsCalcOpen(true); }} onOpenConsult={() => { setMobileDrawer('none'); setIsConsultOpen(true); }} onOpenComparison={() => { setMobileDrawer('none'); setIsComparisonOpen(true); }} onOpenAssembly={() => { setMobileDrawer('none'); setIsAssemblyOpen(true); }} onToggle2D={() => { setMobileDrawer('none'); setShow2DFallback((value) => !value); }} is2DActive={show2DFallback} selectedId={selectedElementId} />}
             </div>
           </div>
         </div>
       )}
-
-      {/* 3. Interactive Calculation Modal [РАССЧИТАТЬ ПРОЕКТ] */}
-      <ProjectCalculatorModal
-        isOpen={isCalcOpen}
-        onClose={() => setIsCalcOpen(false)}
-      />
-
-      {/* 4. Interactive Engineering Question Modal [СПРОСИТЬ ИНЖЕНЕРА] */}
-      <EngineerConsultModal
-        isOpen={isConsultOpen}
-        onClose={() => setIsConsultOpen(false)}
-      />
-
-      {/* 5. Interactive Comparison Sheet [ABG vs ГАЗОБЕТОН] */}
-      <ComparisonDrawer
-        isOpen={isComparisonOpen}
-        onClose={() => setIsComparisonOpen(false)}
-        onOpenCalculator={() => {
-          setIsComparisonOpen(false);
-          setIsCalcOpen(true);
-        }}
-      />
-      <AssemblyStoryModal
-        isOpen={isAssemblyOpen}
-        onClose={() => setIsAssemblyOpen(false)}
-        onOpenCalculator={() => {
-          setIsAssemblyOpen(false);
-          setIsCalcOpen(true);
-        }}
-      />
+      <ProjectCalculatorModal isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} />
+      <EngineerConsultModal isOpen={isConsultOpen} onClose={() => setIsConsultOpen(false)} />
+      <ComparisonDrawer isOpen={isComparisonOpen} onClose={() => setIsComparisonOpen(false)} onOpenCalculator={() => { setIsComparisonOpen(false); setIsCalcOpen(true); }} />
+      <AssemblyStoryModal isOpen={isAssemblyOpen} onClose={() => setIsAssemblyOpen(false)} onOpenCalculator={() => { setIsAssemblyOpen(false); setIsCalcOpen(true); }} />
     </div>
   );
 };

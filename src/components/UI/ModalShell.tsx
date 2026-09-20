@@ -95,7 +95,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 overscroll-contain"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171612]/72 p-3 backdrop-blur-md animate-in fade-in duration-200 overscroll-contain sm:p-6"
       onClick={closeOnBackdropClick ? onClose : undefined}
       data-testid="modal-backdrop"
     >
@@ -106,7 +106,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain bg-[#F5F2EA] rounded-sm border border-[#F4DD45]/30 border-t-2 border-t-[#F4DD45] shadow-[0_28px_90px_rgba(0,0,0,0.5)] text-[#181814] outline-none select-text ${panelClassName}`}
+        className={`relative w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain bg-[#F3F0E9] border border-black/10 shadow-[0_32px_100px_rgba(0,0,0,0.42)] text-[#1D1C19] outline-none select-text ${panelClassName}`}
       >
         {children}
       </div>

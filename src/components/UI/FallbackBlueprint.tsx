@@ -12,7 +12,7 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
   onSelectLayer,
 }) => {
   return (
-    <div className="w-full h-full flex flex-col justify-between p-4 sm:p-8 bg-[#F5F2EA]/95 backdrop-blur-xl rounded-sm border border-[#F4DD45]/30 border-t-2 border-t-[#F4DD45] shadow-[0_20px_60px_rgba(0,0,0,0.2)] text-[#181814] select-none overflow-auto">
+    <div className="flex h-full w-full select-none flex-col justify-between overflow-auto border border-black/10 bg-[#F3F0E9]/95 p-4 text-[#181814] shadow-[0_20px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl sm:p-8">
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-black/5 pb-3 sm:pb-4 gap-2">
         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
@@ -25,7 +25,7 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="p-2 sm:p-1.5 rounded-sm hover:bg-[#F4DD45]/15 text-[#77746C] hover:text-[#181814] active:scale-[0.96] transition-[transform,background-color,color]"
+          className="p-2 text-[#77746C] transition-[transform,background-color,color] hover:bg-black/5 hover:text-[#181814] active:scale-[0.96] sm:p-1.5"
           title="Закрыть"
           aria-label="Закрыть 2D-схему"
         >

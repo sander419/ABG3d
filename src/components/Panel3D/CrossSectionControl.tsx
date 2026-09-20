@@ -119,7 +119,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
       <button
         id="cross-section-toggle-btn"
         onClick={onToggleEnabled}
-        className="pointer-events-auto px-3 py-1.5 rounded-full font-mono text-[11px] tracking-tight flex items-center gap-1.5 border shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer bg-white/90 text-[#3F3F46] hover:text-[#18181B] hover:bg-white border-black/[0.08]"
+        className="pointer-events-auto flex min-h-9 cursor-pointer items-center gap-1.5 border border-black/10 bg-[#F3F0E9]/90 px-3 py-1.5 text-[11px] tracking-tight text-[#5F5A51] shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black"
         title="Включить инструмент сечения (Clipping Plane) для послойного среза панели"
       >
         <Scissors className="w-3.5 h-3.5 text-sky-600 shrink-0" />
@@ -131,7 +131,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
   return (
     <div
       id="cross-section-panel-dock"
-      className="pointer-events-auto bg-white/95 backdrop-blur-xl border border-black/[0.08] shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-2xl p-3.5 sm:p-4 w-[320px] xs:w-[350px] sm:w-[380px] max-w-[92vw] text-[#18181B] select-none transition-all duration-200"
+      className="pointer-events-auto w-[320px] max-w-[92vw] select-none border border-black/10 bg-[#F3F0E9]/95 p-3.5 text-[#1D1C19] shadow-[0_16px_52px_rgba(34,30,24,0.16)] backdrop-blur-xl transition-all duration-200 xs:w-[350px] sm:w-[380px] sm:p-4"
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >

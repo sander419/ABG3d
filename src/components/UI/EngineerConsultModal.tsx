@@ -55,7 +55,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
       <button
         onClick={onClose}
         aria-label="Закрыть форму вопроса"
-        className="absolute top-4 right-4 sm:top-5 sm:right-5 min-h-10 min-w-10 rounded-sm text-[#77746C] hover:bg-[#F4DD45]/15 hover:text-[#181814] active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
+        className="absolute right-4 top-4 inline-flex min-h-10 min-w-10 cursor-pointer items-center justify-center text-[#77746C] transition-[transform,background-color,color] hover:bg-black/5 hover:text-[#181814] active:scale-[0.96] sm:right-5 sm:top-5"
       >
         <X className="w-4 h-4" aria-hidden="true" />
       </button>
@@ -134,7 +134,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
                   className={`w-full py-2.5 px-3 text-left font-mono text-xs transition-[background-color,color,transform] active:scale-[0.99] cursor-pointer flex items-center justify-between ${
                     topic === t.id
                       ? 'bg-[#181814] text-white font-medium'
-                      : 'text-[#52525B] hover:bg-[#F4DD45]/[0.06]'
+                      : 'text-[#52525B] hover:bg-black/[0.035]'
                   }`}
                 >
                   <span>{t.label}</span>
@@ -216,7 +216,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
             type="submit"
             disabled={isSubmitting}
             data-testid="consult-submit"
-            className="w-full min-h-12 py-3 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] disabled:bg-[#A9A59B] disabled:cursor-wait text-[#181814] font-mono text-xs uppercase tracking-[0.16em] font-semibold active:scale-[0.96] transition-[transform,background-color] cursor-pointer flex items-center justify-center gap-2"
+            className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 bg-[#1D1C19] py-3 text-xs font-medium tracking-[0.06em] text-white transition-[transform,background-color] hover:bg-[#34312C] active:scale-[0.98] disabled:cursor-wait disabled:bg-[#A9A59B]"
           >
             {isSubmitting ? (
               <>

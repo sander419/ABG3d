@@ -54,14 +54,14 @@ export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({
       panelClassName="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden p-0"
     >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 sm:px-8 py-5 bg-[#11110F] text-[#F5F2EA] border-b border-[#F4DD45]/30">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#201F1C] px-6 py-5 text-[#F3F0E9] sm:px-8">
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A9A59B]">
                 Сравнение технологий
               </span>
-              <span className="w-1 h-1 rounded-full bg-[#F4DD45]" />
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#F4DD45] font-semibold">
+              <span className="h-1 w-1 rounded-full bg-[#B89A70]" />
+              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#B89A70]">
                 Свойства бетона
               </span>
             </div>
@@ -91,7 +91,7 @@ export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({
             {comparisonData.map((row, idx) => (
               <div
                 key={idx}
-                className="py-3.5 sm:grid sm:grid-cols-12 sm:gap-4 items-start hover:bg-[#F4DD45]/[0.05] transition-colors rounded-sm px-2"
+                className="items-start px-2 py-3.5 transition-colors hover:bg-black/[0.025] sm:grid sm:grid-cols-12 sm:gap-4"
               >
                 {/* Mobile criterion label */}
                 <div className="col-span-4 mb-2 sm:mb-0">
@@ -104,7 +104,7 @@ export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({
                 <div className="col-span-4 mb-2 sm:mb-0 pr-2">
                   <p className="sm:hidden mb-2 font-mono text-[10px] uppercase text-[#625F58]">Панели ABG</p>
                   <div className="flex items-start gap-2">
-                    <span className="w-4 h-4 rounded-full bg-[#F4DD45]/20 text-[#7D6900] flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#947552]/15 text-[#725535]">
                       <Check className="w-2.5 h-2.5 stroke-[3]" />
                     </span>
                     <p className="text-xs text-[#18181B] leading-relaxed font-medium">
@@ -146,7 +146,7 @@ export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({
               onClose();
               onOpenCalculator();
             }}
-            className="py-2.5 px-5 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] text-[#181814] text-[11px] font-mono uppercase tracking-[0.18em] font-semibold active:scale-[0.96] transition-[transform,background-color] flex items-center gap-1.5 cursor-pointer"
+            className="flex cursor-pointer items-center gap-1.5 bg-[#1D1C19] px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white transition-[transform,background-color] hover:bg-[#34312C] active:scale-[0.98]"
           >
             <span>Рассчитать проект</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
