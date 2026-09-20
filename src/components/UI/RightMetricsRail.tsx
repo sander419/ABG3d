@@ -16,7 +16,7 @@ interface RightMetricsRailProps {
 const facts = [
   ['390 мм', 'общая толщина'],
   ['3 слоя', 'единый заводской элемент'],
-  ['до 80 лет', 'расчётный срок службы*'],
+  ['На заводе', 'изготовление слоёв'],
 ];
 
 export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({ onOpenCalculator, onOpenConsult, onOpenComparison, onOpenAssembly, onToggle2D, is2DActive }) => (
@@ -40,11 +40,11 @@ export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({ onOpenCalcul
         <button onClick={onOpenConsult} className="border-b border-white/18 pb-2 text-left transition-colors hover:border-[#B89A70] hover:text-white">Обсудить с инженером</button>
         {onOpenAssembly && <button onClick={onOpenAssembly} className="border-b border-white/18 pb-2 text-left transition-colors hover:border-[#B89A70] hover:text-white">Как собирается панель</button>}
       </div>
-      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-[10px] text-[#89857E]">
-        {onOpenComparison && <button onClick={onOpenComparison} className="hover:text-[#D8C1A2]">Сравнить технологии</button>}
+      {onOpenComparison && <button onClick={onOpenComparison} className="mt-5 w-full border-y border-[#B89A70]/30 py-3 text-left text-[#D8C1A2] transition-colors hover:bg-white/5"><span className="block text-[9px] uppercase tracking-[0.14em]">Две логики строительства</span><span className="mt-1 flex items-center justify-between text-[14px]">ABG и газобетон <span aria-hidden="true">↗</span></span></button>}
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[10px] text-[#A9A398]">
         <button onClick={onToggle2D} className="hover:text-[#D8C1A2]">{is2DActive ? 'Вернуться в 3D' : 'Открыть 2D-схему'}</button>
       </div>
-      <p className="mt-6 text-[9px] leading-relaxed text-[#77736C]">* Срок зависит от условий эксплуатации и проектных решений.</p>
+      <p className="mt-4 text-[10px] leading-relaxed text-[#A9A398]">Толщины слоёв показаны для иллюстративной конфигурации.</p>
     </div>
   </aside>
 );

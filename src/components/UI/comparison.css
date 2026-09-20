@@ -1,0 +1,64 @@
+.comparison-shell { color: #25231f; }
+.comparison-heading { display: flex; align-items: flex-start; justify-content: space-between; padding: 30px 36px 22px; }
+.comparison-eyebrow { margin: 0 0 12px; font-size: 10px; text-transform: uppercase; letter-spacing: .2em; color: #826647; }
+.comparison-heading h2 { margin: 0; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; letter-spacing: -.045em; font-weight: 400; }
+.comparison-heading em { font-family: Georgia, serif; color: #856b4a; font-weight: 400; }
+.comparison-close { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; cursor: pointer; color: #736c61; }
+.comparison-close:hover { background: #e6e0d5; }
+.comparison-body { padding: 0 36px 24px; }
+.comparison-switch { display: flex; border-bottom: 1px solid #d3cbbf; gap: 26px; }
+.comparison-switch button { display: flex; align-items: center; gap: 9px; min-height: 48px; border-bottom: 2px solid transparent; font-size: 13px; cursor: pointer; color: #716a60; transition: color 150ms, border-color 150ms; }
+.comparison-switch button span { font: 10px 'IBM Plex Mono', monospace; color: #887154; }
+.comparison-switch button[aria-pressed=true] { color: #25231f; border-color: #947552; }
+.comparison-switch button:hover { color: #25231f; }
+.comparison-insight { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; margin: 25px 0; min-height: 70px; }
+.comparison-insight h3 { margin: 0; max-width: 410px; font-size: 25px; line-height: 1.16; font-weight: 400; letter-spacing: -.035em; }
+.comparison-insight p { margin: 0; color: #716a60; font-size: 13px; line-height: 1.6; }
+.comparison-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.comparison-wall { overflow: hidden; }
+.comparison-wall-abg { background: #22231f; color: #f2efe8; }
+.comparison-wall-block { background: #e6e0d5; }
+.comparison-wall-label { display: flex; justify-content: space-between; align-items: baseline; padding: 22px 24px 0; gap: 12px; }
+.comparison-wall-label span:first-child { font-size: 18px; letter-spacing: -.025em; }
+.comparison-wall-label span:last-child { font-size: 9px; text-transform: uppercase; letter-spacing: .12em; opacity: .7; }
+.comparison-art { position: relative; padding: 0 12px 24px; }
+.comparison-art img { display: block; width: 100%; height: 190px; object-fit: contain; }
+.comparison-art-caption { display: block; text-align: center; font-size: 10px; opacity: .65; }
+.comparison-wall-copy { padding: 0 24px 24px; }
+.comparison-wall-copy h4 { margin: 0 0 10px; font-weight: 400; font-size: 20px; line-height: 1.2; letter-spacing: -.025em; }
+.comparison-wall-copy p { font-size: 12px; line-height: 1.65; min-height: 80px; margin: 0 0 20px; color: #696257; }
+.comparison-wall-abg .comparison-wall-copy p { color: #c0baaf; }
+.comparison-wall-copy ol { margin: 0; padding: 14px 0 0; list-style: none; counter-reset: steps; display: flex; border-top: 1px solid #bcb2a2; gap: 16px; }
+.comparison-wall-abg ol { border-color: #555345; }
+.comparison-wall-copy li { flex: 1; font-size: 10px; line-height: 1.45; counter-increment: steps; }
+.comparison-wall-copy li::before { content: '0' counter(steps); display: block; margin-bottom: 7px; font: 10px 'IBM Plex Mono', monospace; color: #8a7050; }
+.comparison-wall-abg li::before { color: #c0a579; }
+.comparison-note { display: flex; gap: 24px; border-bottom: 1px solid #d3cbbf; padding: 20px 0; margin: 0; color: #716a60; font-size: 11px; line-height: 1.6; }
+.comparison-note span { flex-shrink: 0; color: #826647; }
+.comparison-sources { margin-top: 12px; font-size: 11px; line-height: 1.65; color: #716a60; }
+.comparison-sources summary { cursor: pointer; width: fit-content; padding: 8px 0; }
+.comparison-sources p { margin: 8px 0 0; }
+.comparison-sources a { text-decoration: underline; text-underline-offset: 3px; }
+.comparison-footer { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 22px 36px; background: #e9e3d8; }
+.comparison-footer p { margin: 0; font-size: 13px; }
+.comparison-footer p span { display: block; margin-top: 3px; font-size: 11px; color: #716a60; }
+.comparison-footer button { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 15px 22px; flex-shrink: 0; background: #22231f; color: #f3f0e9; font-size: 12px; cursor: pointer; transition: background-color 150ms; }
+.comparison-footer button:hover { background: #3a3b32; }
+@media(max-width: 640px) {
+  .comparison-heading { padding: 24px 20px 16px; }
+  .comparison-heading h2 { max-width: 230px; }
+  .comparison-body { padding: 0 20px 20px; }
+  .comparison-switch { gap: 15px; }
+  .comparison-switch button { gap: 5px; font-size: 11px; }
+  .comparison-switch button span { display: none; }
+  .comparison-insight { grid-template-columns: 1fr; gap: 12px; margin: 22px 0; }
+  .comparison-insight h3 { font-size: 24px; }
+  .comparison-pair { grid-template-columns: 1fr; gap: 12px; }
+  .comparison-wall-copy p { min-height: 0; }
+  .comparison-art img { height: 160px; }
+  .comparison-wall-label { padding: 20px 20px 0; }
+  .comparison-wall-copy { padding: 0 20px 22px; }
+  .comparison-note { display: block; }
+  .comparison-note span { display: block; margin-bottom: 6px; }
+  .comparison-footer { padding: 20px; flex-direction: column; align-items: stretch; gap: 16px; }
+}

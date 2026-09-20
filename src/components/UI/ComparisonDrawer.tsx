@@ -1,6 +1,7 @@
-import React from 'react';
-import { X, Check, AlertCircle, ArrowUpRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowUpRight, X } from 'lucide-react';
 import { ModalShell } from './ModalShell';
+import './comparison.css';
 
 interface ComparisonDrawerProps {
   isOpen: boolean;
@@ -8,150 +9,75 @@ interface ComparisonDrawerProps {
   onOpenCalculator: () => void;
 }
 
-export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({
-  isOpen,
-  onClose,
-  onOpenCalculator,
-}) => {
-  const comparisonData = [
-    {
-      criterion: 'Несущая способность бетона',
-      abg: 'Два железобетонных слоя и закладные системы проектируются как единый заводской элемент. Класс бетона определяется расчётом, не ниже B25 для стеновых панелей ABG.',
-      traditional: 'Конструктивное решение зависит от марки блоков, схемы армирования и проектных армопоясов.',
-      winner: 'abg',
-    },
-    {
-      criterion: 'Тепловой контур и швы',
-      abg: 'В базовой конфигурации — 200 мм эффективного утеплителя; материал утеплителя выбирается для конкретного проекта. Связи и швы рассчитываются отдельно.',
-      traditional: 'Теплотехника рассчитывается по конструкции стены, раствору, швам и климатическому району.',
-      winner: 'abg',
-    },
-    {
-      criterion: 'Влагонакопление и циклы',
-      abg: 'Положение точки росы и защита от влаги проверяются теплотехническим расчётом проекта.',
-      traditional: 'Требования к паропроницаемости и отделке зависят от выбранной конструкции стены.',
-      winner: 'abg',
-    },
-    {
-      criterion: 'Усадка и отделка',
-      abg: 'Заводская геометрия и готовая наружная поверхность уменьшают объём мокрых процессов на площадке.',
-      traditional: 'Сроки отделки и риск трещин зависят от технологии, качества монтажа и проектных решений.',
-      winner: 'abg',
-    },
-    {
-      criterion: 'Сроки монтажа теплового контура',
-      abg: 'Сборка стенового комплекта выполняется краном по ППР. Фактические сроки зависят от проекта, логистики, фундамента и погоды.',
-      traditional: 'Сроки зависят от бригады, технологий, готовности материалов и погодных условий.',
-      winner: 'abg',
-    },
-  ];
+const perspectives = [
+  {
+    id: 'assembly', label: 'Монтаж', number: '01',
+    headline: 'Больше готовности. Меньше операций на участке.',
+    benefit: 'Стена приезжает крупным элементом: несущий слой, утеплитель и наружный бетон уже объединены на заводе.',
+    abgTitle: 'Собрать готовое', blockTitle: 'Создать на месте',
+    abg: 'Панель устанавливают краном, соединяют по проекту и герметизируют стыки. Основная работа над слоями стены выполнена до доставки.',
+    block: 'Стену выкладывают из отдельных блоков. Перемычки, армирование, армопояса и отделку выполняют по принятой конструктивной схеме.',
+    abgSteps: ['Изготовление на заводе', 'Монтаж панели', 'Узлы и стыки'],
+    blockSteps: ['Кладка блоков', 'Проектные усиления', 'Фасадные работы'],
+    caveat: 'Панелям нужны подъезд для доставки, место для крана и подготовленное основание. Общий срок сравнивают вместе с проектированием и производством.',
+  },
+  {
+    id: 'facade', label: 'Архитектура', number: '02',
+    headline: 'Характер фасада закладывается в конструкцию.',
+    benefit: 'Наружный бетонный слой позволяет связать архитектурную поверхность и конструкцию в одном заводском решении.',
+    abgTitle: 'Фасад как часть панели', blockTitle: 'Фасад как отдельный этап',
+    abg: 'Фактуру, геометрию поверхности и расположение стыков согласуют при проектировании. Возможность заводской отделки зависит от выбранной комплектации.',
+    block: 'Газобетон служит основанием для выбранной фасадной системы. Штукатурку, облицовку или навесной фасад подбирают и выполняют отдельно.',
+    abgSteps: ['Архитектурное решение', 'Формование поверхности', 'Сборка фасада'],
+    blockSteps: ['Возведение стены', 'Подготовка основания', 'Устройство фасада'],
+    caveat: 'Газобетон даёт широкий выбор фасадных систем. Для честного сравнения в обе сметы включают одинаковый уровень наружной и внутренней отделки.',
+  },
+  {
+    id: 'thermal', label: 'Тепловой контур', number: '03',
+    headline: 'У каждого слоя — своя задача.',
+    benefit: 'В панели ABG несущая функция и теплоизоляция разделены: утеплитель расположен между двумя бетонными слоями.',
+    abgTitle: 'Выделенный слой утепления', blockTitle: 'Теплоизоляционные свойства блока',
+    abg: 'Толщину и материал утеплителя подбирают под проект. Теплопередачу через связи, примыкания и межпанельные стыки учитывают в расчёте.',
+    block: 'Результат зависит от плотности, толщины и влажности блоков, а также швов и узлов. Дополнительное утепление требуется не во всех проектах.',
+    abgSteps: ['Наружный бетон', 'Теплоизоляция', 'Несущий бетон'],
+    blockSteps: ['Блок выбранной марки', 'Кладочные швы', 'Узлы по расчёту'],
+    caveat: 'Это сравнение устройства стен. Какая стена теплее и сколько стоит отопление, определяют расчётом для одного климата и одинаковых условий эксплуатации.',
+  },
+] as const;
+
+export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({ isOpen, onClose, onOpenCalculator }) => {
+  const [selected, setSelected] = useState(0);
+  const perspective = perspectives[selected];
 
   return (
-    <ModalShell
-      isOpen={isOpen}
-      onClose={onClose}
-      labelledBy="comparison-modal-title"
-      panelClassName="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden p-0"
-    >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 bg-[#201F1C] px-6 py-5 text-[#F3F0E9] sm:px-8">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A9A59B]">
-                Сравнение технологий
-              </span>
-              <span className="h-1 w-1 rounded-full bg-[#B89A70]" />
-              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#B89A70]">
-                Свойства бетона
-              </span>
-            </div>
-            <h3 id="comparison-modal-title" className="text-sm sm:text-base font-sans font-semibold text-[#F5F2EA] tracking-tight mt-0.5">
-              Панели ABG и газобетонная кладка
-            </h3>
-          </div>
-
-          <button
-            onClick={onClose}
-            aria-label="Закрыть сравнение"
-            className="p-2 rounded-sm text-[#A9A59B] hover:text-[#F5F2EA] hover:bg-white/10 active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <ModalShell isOpen={isOpen} onClose={onClose} labelledBy="comparison-modal-title" panelClassName="comparison-shell max-w-[1080px] p-0">
+      <div className="comparison-heading">
+        <div><p className="comparison-eyebrow">ABG / две логики строительства</p><h2 id="comparison-modal-title">Разница — <em>в подходе.</em></h2></div>
+        <button type="button" onClick={onClose} aria-label="Закрыть сравнение" className="comparison-close"><X size={20} strokeWidth={1.5} /></button>
+      </div>
+      <div className="comparison-body">
+        <div role="group" aria-label="Что сравниваем" className="comparison-switch">
+          {perspectives.map((item, index) => <button type="button" key={item.id} aria-pressed={index === selected} onClick={() => setSelected(index)}><span>{item.number}</span>{item.label}</button>)}
         </div>
-
-        {/* Comparison Table Body */}
-        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-4 bg-[#F5F2EA]">
-          <div className="hidden sm:grid grid-cols-12 gap-4 pb-2 border-b border-black/10 font-mono text-[9px] uppercase tracking-[0.2em] text-[#71717A]">
-            <div className="col-span-4">Критерий оценки</div>
-            <div className="col-span-4 text-[#18181B] font-semibold">ABG трёхслойная панель (200 мм* + Peikko)</div>
-            <div className="col-span-4">Классический газобетон D400–D500</div>
-          </div>
-
-          <div className="divide-y divide-black/[0.04]">
-            {comparisonData.map((row, idx) => (
-              <div
-                key={idx}
-                className="items-start px-2 py-3.5 transition-colors hover:bg-black/[0.025] sm:grid sm:grid-cols-12 sm:gap-4"
-              >
-                {/* Mobile criterion label */}
-                <div className="col-span-4 mb-2 sm:mb-0">
-                  <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#18181B]">
-                    {row.criterion}
-                  </span>
-                </div>
-
-                {/* ABG Advantage */}
-                <div className="col-span-4 mb-2 sm:mb-0 pr-2">
-                  <p className="sm:hidden mb-2 font-mono text-[10px] uppercase text-[#625F58]">Панели ABG</p>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#947552]/15 text-[#725535]">
-                      <Check className="w-2.5 h-2.5 stroke-[3]" />
-                    </span>
-                    <p className="text-xs text-[#18181B] leading-relaxed font-medium">
-                      {row.abg}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Traditional Block */}
-                <div className="col-span-4 pl-0 sm:pl-2">
-                  <p className="sm:hidden mb-2 font-mono text-[10px] uppercase text-[#625F58]">Газобетонная кладка</p>
-                  <div className="flex items-start gap-2 text-[#71717A]">
-                    <span className="w-4 h-4 rounded-full bg-black/5 text-[#A1A1AA] flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] font-bold">—</span>
-                    </span>
-                    <p className="text-xs text-[#52525B] leading-relaxed">
-                      {row.traditional}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footnote */}
-          <div className="mt-4 pt-3 border-t border-black/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[9px] font-mono text-[#A1A1AA]">
-            <span>Обзор принципов строительства. Сроки, нагрузки и теплотехника требуют расчёта конкретного проекта.</span>
-            <span>Рабочие решения — по проекту ABG</span>
-          </div>
+        <div className="comparison-insight" aria-live="polite" aria-atomic="true">
+          <h3>{perspective.headline}</h3><p>{perspective.benefit}</p>
         </div>
-
-        {/* Footer Actions */}
-        <div className="px-6 sm:px-8 py-4 border-t border-black/10 bg-[#ECE9DF] flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0">
-          <div className="font-mono text-[10px] text-[#52525B]">
-            Готовы обсудить конструктивные решения вашего дома?
-          </div>
-          <button
-            onClick={() => {
-              onClose();
-              onOpenCalculator();
-            }}
-            className="flex cursor-pointer items-center gap-1.5 bg-[#1D1C19] px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white transition-[transform,background-color] hover:bg-[#34312C] active:scale-[0.98]"
-          >
-            <span>Рассчитать проект</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
+        <div className="comparison-pair" data-perspective={perspective.id}>
+          <article className="comparison-wall comparison-wall-abg">
+            <div className="comparison-wall-label"><span>ABG</span><span>Заводская система</span></div>
+            <div className="comparison-art"><img src="/brand/panel-study.svg" alt="Схема панели: два бетонных слоя и утеплитель между ними" width="480" height="270" /><span className="comparison-art-caption">Три слоя. Один элемент.</span></div>
+            <div className="comparison-wall-copy"><h4>{perspective.abgTitle}</h4><p>{perspective.abg}</p><ol>{perspective.abgSteps.map((step) => <li key={step}>{step}</li>)}</ol></div>
+          </article>
+          <article className="comparison-wall comparison-wall-block">
+            <div className="comparison-wall-label"><span>Газобетон</span><span>Блочная кладка</span></div>
+            <div className="comparison-art"><img src="/brand/block-study.svg" alt="Схема стены из отдельных газобетонных блоков с перевязкой швов" width="480" height="270" /><span className="comparison-art-caption">Стена формируется на площадке.</span></div>
+            <div className="comparison-wall-copy"><h4>{perspective.blockTitle}</h4><p>{perspective.block}</p><ol>{perspective.blockSteps.map((step) => <li key={step}>{step}</li>)}</ol></div>
+          </article>
         </div>
+        <p className="comparison-note"><span>В вашем проекте</span>{perspective.caveat}</p>
+        <details className="comparison-sources"><summary>Основа сравнения</summary><p>Принципы устройства стен: <a href="https://abgtz.com/bystrovozvodimye-prefab-doma-iz-betonnyh-trehsloynyh-paneley-po-tehnologii-peikkor.html" target="_blank" rel="noopener noreferrer">технология ABG</a> и <a href="https://istkult.ru/help/faq/" target="_blank" rel="noopener noreferrer">технические разъяснения производителя газобетона ISTKULT</a>. Иллюстрации показывают принцип и не являются рабочими чертежами. Сроки и стоимость здесь не ранжируются.</p></details>
+      </div>
+      <div className="comparison-footer"><p>Выберите технологию под свой дом.<span>Сравните полный состав работ и комплектацию.</span></p><button type="button" onClick={onOpenCalculator}>Обсудить проект ABG <ArrowUpRight size={16} strokeWidth={1.5} /></button></div>
     </ModalShell>
   );
 };

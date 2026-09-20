@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="270" viewBox="0 0 480 270" fill="none">
+  <defs>
+    <linearGradient id="concrete" x1="120" y1="35" x2="340" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="#e5dfd2"/><stop offset="1" stop-color="#9c9687"/></linearGradient>
+    <linearGradient id="wool" x1="200" y1="20" x2="280" y2="240" gradientUnits="userSpaceOnUse"><stop stop-color="#d9c299"/><stop offset="1" stop-color="#9c8059"/></linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".14"/></feComponentTransfer><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter>
+    <radialGradient id="shadow"><stop stop-color="#000" stop-opacity=".45"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="242" cy="236" rx="175" ry="23" fill="url(#shadow)"/>
+  <path d="M278 31 351 70 351 225 278 184Z" fill="url(#concrete)"/>
+  <path d="m278 31 15-7 73 40-15 6Z" fill="#ece6d9"/><path d="m351 70 15-6v155l-15 6Z" fill="#888376"/>
+  <path d="M207 44 280 84 280 239 207 198Z" fill="url(#wool)"/>
+  <path d="m207 44 30-14 73 40-30 14Z" fill="#dfc89f"/><path d="m280 84 30-14v155l-30 14Z" fill="#a38a63"/>
+  <path d="M121 48 194 88 194 243 121 202Z" fill="url(#concrete)"/>
+  <path d="m121 48 17-8 73 40-17 8Z" fill="#eee8dc"/><path d="m194 88 17-8v155l-17 8Z" fill="#8c877a"/>
+  <path d="M121 48 194 88 194 243 121 202ZM278 31 351 70 351 225 278 184Z" fill="#c3bdaf" opacity=".35" filter="url(#grain)"/>
+  <path d="m200 125 100-47m-100 98 100-47" stroke="#d4c5a7" stroke-width="1" stroke-dasharray="3 5" opacity=".6"/>
+  <path d="M147 39V21h-48M239 29V10h-37M319 30V15h54" stroke="#b79a70" stroke-width=".8" opacity=".8"/>
+  <circle cx="99" cy="21" r="2" fill="#d0b17f"/><circle cx="202" cy="10" r="2" fill="#d0b17f"/><circle cx="373" cy="15" r="2" fill="#d0b17f"/>
+</svg>
