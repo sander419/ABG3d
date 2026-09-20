@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: dark;
+  --abg-ink: #0a0a09;
+  --abg-panel: #11110f;
+  --abg-paper: #f5f2ea;
+  --abg-gold: #f4dd45;
+  --abg-gold-hover: #e4c45d;
+}
+
 @layer base {
   html, body, #root {
     height: 100%;
@@ -8,8 +17,8 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #FBFBFB;
-    color: #18181B;
+    background-color: #0A0A09;
+    color: #F5F2EA;
     font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -18,14 +27,49 @@
   code, kbd, samp, pre, .font-mono {
     font-family: 'IBM Plex Mono', monospace;
   }
+
+  button, a, input, textarea, [tabindex] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--abg-gold);
+    outline-offset: 3px;
+  }
 }
 
-/* Architectural subtle hair-grid with warm #FBFBFB base */
-.gallery-grid {
-  background-size: 48px 48px;
+::selection {
+  background: rgba(216, 181, 74, 0.32);
+  color: #ffffff;
+}
+
+.abg-skip-link {
+  position: fixed;
+  inset-block-start: 0.75rem;
+  inset-inline-start: 0.75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 0.25rem;
+  background: var(--abg-gold);
+  color: var(--abg-ink);
+  padding: 0.65rem 0.9rem;
+  font: 600 0.75rem/1 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 150ms ease-out;
+}
+
+.abg-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+/* ABG's black exhibition field: restrained, mineral and deliberately quiet. */
+.abg-grid {
+  background-size: 64px 64px;
   background-image: 
-    linear-gradient(to right, rgba(24, 24, 27, 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(24, 24, 27, 0.025) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    radial-gradient(circle at 50% 40%, rgba(216, 181, 74, 0.07), transparent 42%);
 }
 
 /* 6px Hotspot Pulse Animation */
@@ -59,6 +103,20 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .hotspot-pulse-ring,
+  .hotspot-pulse-ring-active {
+    animation: none !important;
+  }
 }
 
 

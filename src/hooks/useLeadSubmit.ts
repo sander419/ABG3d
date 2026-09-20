@@ -58,6 +58,7 @@ export function useLeadSubmit(
   const [channelUnavailable, setChannelUnavailable] = useState<boolean>(false);
 
   const openedAtRef = useRef<number>(0);
+  const generationRef = useRef(0);
   const statusRef = useRef<LeadFormStatus>('idle');
   statusRef.current = status;
 
@@ -67,6 +68,7 @@ export function useLeadSubmit(
   const now = nowRef.current;
 
   const reset = useCallback(() => {
+    generationRef.current += 1;
     openedAtRef.current = now();
     statusRef.current = 'idle';
     setStatus('idle');
@@ -78,8 +80,10 @@ export function useLeadSubmit(
   const wasOpenRef = useRef(false);
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) reset();
+    if (!isOpen && wasOpenRef.current) generationRef.current += 1;
     wasOpenRef.current = isOpen;
   }, [isOpen, reset]);
+  useEffect(() => () => { generationRef.current += 1; }, []);
 
   const submit = useCallback(
     async (input: Omit<LeadInput, 'kind'>): Promise<FormSubmitOutcome> => {
@@ -104,11 +108,14 @@ export function useLeadSubmit(
         { ...input, kind, contact: contact.normalized },
         { now: now(), elapsedMs, page },
       );
+      const generation = generationRef.current;
 
       const result = await submitLead(payload, {
         endpoint: options.endpoint,
         fetchImpl: options.fetchImpl,
       });
+      // A response from a closed form must not overwrite a newly opened form.
+      if (generation !== generationRef.current) return result;
 
       if (result.status === 'success') {
         statusRef.current = 'success';

@@ -25,10 +25,12 @@ describe('parseWidgetParams', () => {
     expect(parseWidgetParams('?open=calculator').overlay).toBe('calc');
     expect(parseWidgetParams('?open=consult').overlay).toBe('consult');
     expect(parseWidgetParams('?open=compare').overlay).toBe('compare');
+    expect(parseWidgetParams('?open=assembly').overlay).toBe('assembly');
+    expect(parseWidgetParams('?open=montazh').overlay).toBe('assembly');
   });
 
   test('мусор и пустая строка не ломают виджет', () => {
-    expect(parseWidgetParams('')).toEqual({ mode: null, overlay: null, raw: {} });
+    expect(parseWidgetParams('')).toEqual({ mode: null, overlay: null, embedded: false, raw: {} });
     expect(parseWidgetParams('?v=<script>').mode).toBeNull();
     expect(parseWidgetParams('?open=hack').overlay).toBeNull();
     expect(parseWidgetParams('?foo=bar').mode).toBeNull();
@@ -36,8 +38,14 @@ describe('parseWidgetParams', () => {
   });
 
   test('raw содержит только распознанные ключи', () => {
-    const parsed = parseWidgetParams('?v=thermal2&open=calc&x=1');
-    expect(parsed.raw).toEqual({ mode: 'thermal2', open: 'calc' });
+    const parsed = parseWidgetParams('?v=thermal2&open=calc&embed=1&x=1');
+    expect(parsed.raw).toEqual({ mode: 'thermal2', open: 'calc', embed: '1' });
+  });
+
+  test('?embed= включает компактный режим встраивания', () => {
+    expect(parseWidgetParams('?embed=1').embedded).toBe(true);
+    expect(parseWidgetParams('?embed=true').embedded).toBe(true);
+    expect(parseWidgetParams('?embed=0').embedded).toBe(false);
   });
 });
 
@@ -70,7 +78,7 @@ describe('viewMode', () => {
     expect(modeChangePatch('assembled').clearSelection).toBe(true);
     expect(modeChangePatch('thermal').clearSelection).toBe(true);
     expect(modeChangePatch('exploded').clearSelection).toBe(false);
-    expect(modeChangePatch('structure').clearSelection).toBe(false);
+    expect(modeChangePatch('structure').clearSelection).toBe(true);
   });
 
   test('значение разборки клампится в 0..1', () => {

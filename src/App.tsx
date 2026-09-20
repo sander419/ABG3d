@@ -13,7 +13,8 @@ import { FallbackBlueprint } from './components/UI/FallbackBlueprint';
 import { ProjectCalculatorModal } from './components/UI/ProjectCalculatorModal';
 import { EngineerConsultModal } from './components/UI/EngineerConsultModal';
 import { ComparisonDrawer } from './components/UI/ComparisonDrawer';
-import { Layers, Sliders, X, FileText, Calculator, HelpCircle, Columns } from 'lucide-react';
+import { AssemblyStoryModal } from './components/UI/AssemblyStoryModal';
+import { Layers, Sliders, X, Calculator } from 'lucide-react';
 
 // 3D-сцена тянет three.js + drei (~1.3 МБ несжатого JS) — грузим её отдельным чанком,
 // чтобы первый кадр интерфейса рисовался сразу, а модель приезжала следом (fallback = скелет).
@@ -25,22 +26,26 @@ export const App: React.FC = () => {
   // Параметры URL (?v= / ?mode= / ?open=) читаются один раз при старте.
   // До рефакторинга ?v=thermal2 был мёртвым: код его не читал вообще.
   const initialParams = useMemo(() => readWidgetParamsFromLocation(), []);
-  const initialMode: WidgetViewMode = initialParams.mode ?? 'exploded';
+  const isEmbedded = initialParams.embedded;
+  // Sales entry point: a finished architectural element reads as a product;
+  // engineering exploration is an intentional second step.
+  const initialMode: WidgetViewMode = initialParams.mode ?? 'assembled';
 
-  // Default to 'exploded' view mode so the user immediately sees the precast sandwich layers and Peikko ties
   const [viewMode, setViewMode] = useState<WidgetViewMode>(initialMode);
   const [scrubValue, setScrubValue] = useState<number>(MODE_DEFAULTS[initialMode]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showDimensions, setShowDimensions] = useState<boolean>(true);
   const [show2DFallback, setShow2DFallback] = useState<boolean>(false);
 
-  // Modals state (?open=calc|consult|compare открывает нужную сразу)
+  // Modals state (?open=calc|consult|compare|assembly открывает нужную сразу)
   const [isCalcOpen, setIsCalcOpen] = useState<boolean>(initialParams.overlay === 'calc');
   const [isConsultOpen, setIsConsultOpen] = useState<boolean>(initialParams.overlay === 'consult');
   const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(initialParams.overlay === 'compare');
+  const [isAssemblyOpen, setIsAssemblyOpen] = useState<boolean>(initialParams.overlay === 'assembly');
 
   // Mobile drawer state ('none' | 'anatomy' | 'metrics')
   const [mobileDrawer, setMobileDrawer] = useState<'none' | 'anatomy' | 'metrics'>('none');
+  const overlayOpen = isCalcOpen || isConsultOpen || isComparisonOpen || isAssemblyOpen;
 
   const handleModeChange = (mode: WidgetViewMode) => {
     const patch = modeChangePatch(mode);
@@ -57,22 +62,27 @@ export const App: React.FC = () => {
   }, [viewMode]);
 
   useEffect(() => {
-    const overlay = isCalcOpen ? 'calc' : isConsultOpen ? 'consult' : isComparisonOpen ? 'compare' : null;
+    const overlay = isCalcOpen ? 'calc' : isConsultOpen ? 'consult' : isComparisonOpen ? 'compare' : isAssemblyOpen ? 'assembly' : null;
     emitWidgetEvent('abg3d:overlay', { overlay, open: overlay !== null });
-  }, [isCalcOpen, isConsultOpen, isComparisonOpen]);
+  }, [isCalcOpen, isConsultOpen, isComparisonOpen, isAssemblyOpen]);
 
   return (
-    <div className="h-screen h-[100dvh] w-screen overflow-hidden select-none bg-[#FBFBFB] text-[#18181B] flex flex-col relative font-sans antialiased">
+    <div className="h-screen h-[100dvh] w-screen overflow-hidden bg-[#0A0A09] text-[#F5F2EA] flex flex-col relative font-sans antialiased">
+      <a href="#main-content" className="abg-skip-link">К интерактивной модели</a>
       {/* Background subtle architectural hair-grid */}
-      <div className="absolute inset-0 gallery-grid pointer-events-none opacity-50 z-0" />
+      <div className="absolute inset-0 abg-grid pointer-events-none opacity-60 z-0" />
 
-      {/* 1. Ultra-slim Swiss Micro-Header (48px) */}
-      <Header />
+      {/* Страница-хост уже несёт бренд: в iframe не дублируем логотип и ссылку. */}
+      {!isEmbedded && (
+        <div inert={overlayOpen ? true : undefined} aria-hidden={overlayOpen || undefined}>
+          <Header />
+        </div>
+      )}
 
       {/* 2. Main Zero-Scroll 3-Column Studio Layout */}
-      <div className="flex-1 w-full min-h-0 relative flex overflow-hidden z-10">
+      <div inert={overlayOpen ? true : undefined} aria-hidden={overlayOpen || undefined} className="flex-1 w-full min-h-0 relative flex overflow-hidden z-10">
         {/* DESKTOP LEFT COLUMN: АНАТОМИЯ И КОНСТРУКТИВ PEIKKO */}
-        <div className="hidden lg:flex w-[320px] xl:w-[350px] shrink-0 h-full border-r border-black/[0.04] bg-[#FBFBFB]/80 backdrop-blur-xs flex-col z-20">
+        <div className="hidden min-[1180px]:flex absolute inset-y-4 left-4 w-[260px] 2xl:w-[304px] border border-white/10 bg-[#0E0E0D]/92 backdrop-blur-2xl flex-col z-20 rounded-sm shadow-[0_24px_80px_rgba(0,0,0,0.28)] overflow-hidden">
           <LeftAnatomyRail
             selectedId={selectedElementId}
             onSelect={(id) => setSelectedElementId(id)}
@@ -81,9 +91,9 @@ export const App: React.FC = () => {
         </div>
 
         {/* CENTER STAGE: 3D-СЦЕНА & ПАРИРУЮЩИЙ РЕЖИМНЫЙ КОНТРОЛЛЕР */}
-        <main className="flex-1 h-full relative flex flex-col min-w-0 z-10 overflow-hidden">
+        <main id="main-content" className="flex-1 h-full relative flex flex-col min-w-0 z-10 overflow-hidden" tabIndex={-1}>
           {/* Floating State Machine Capsule (Rond Design Lab Floating Text Capsule) */}
-          <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div hidden={show2DFallback} className="absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100vw-1rem)]">
             <CenterModeCapsule
               currentMode={viewMode}
               onModeChange={handleModeChange}
@@ -96,10 +106,10 @@ export const App: React.FC = () => {
 
           {/* Interactive 3D Model Scene or 2D Architectural Blueprint */}
           {show2DFallback ? (
-            <div className="w-full h-full p-4 sm:p-8 flex items-center justify-center">
+            <div className="w-full h-full px-3 pt-3 pb-20 min-[1180px]:px-[292px] min-[1180px]:py-4 2xl:px-[336px] flex items-center justify-center">
               <FallbackBlueprint
                 onClose={() => setShow2DFallback(false)}
-                onSelectLayer={(id) => setSelectedElementId(id)}
+                onSelectLayer={(id) => { setSelectedElementId(id); setShow2DFallback(false); }}
               />
             </div>
           ) : (
@@ -125,25 +135,27 @@ export const App: React.FC = () => {
               mobile action bar (App.tsx:118) or the stage controls (PanelScene.tsx:376),
               and the very same action already lives in the right rail
               (RightMetricsRail «ABG VS ГАЗОБЕТОН (ТАБЛИЦА)»). */}
-          <div className="hidden xl:flex absolute bottom-4 left-4 z-20 items-center">
+          <div className={`${show2DFallback ? 'hidden' : 'hidden min-[1180px]:flex'} absolute bottom-5 left-5 z-20 items-center`}>
             <button
               onClick={() => setIsComparisonOpen(true)}
-              className="px-3.5 py-1.5 rounded-full bg-white/85 hover:bg-white text-[#3F3F46] hover:text-[#18181B] text-[10px] font-mono uppercase tracking-[0.18em] border border-black/[0.06] shadow-xs backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-sm bg-[#151513]/90 hover:bg-[#1C1C19] text-[#D8D4C8] hover:text-white text-[10px] font-mono uppercase tracking-[0.16em] border border-white/10 backdrop-blur-md transition-all flex items-center gap-2 cursor-pointer"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-              <span>Почему не просто бетон? ABG vs Газобетон</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F4DD45]" />
+              <span>Сравнить технологии строительства</span>
             </button>
           </div>
 
           {/* MOBILE BOTTOM MICRO-BAR (< 1024px) */}
-          <div className="lg:hidden absolute bottom-3 left-0 right-0 z-30 px-3 flex items-center justify-center gap-2 pointer-events-none">
-            <div className="pointer-events-auto flex items-center gap-1.5 p-1.5 rounded-full bg-white/90 backdrop-blur-xl border border-black/[0.06] shadow-sm">
+          <nav aria-label="Действия с моделью" className="min-[1180px]:hidden absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-0 right-0 z-30 px-3 flex items-center justify-center gap-2 pointer-events-none">
+            <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-md bg-[#121210]/94 backdrop-blur-2xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.45)]">
               <button
                 onClick={() => setMobileDrawer(mobileDrawer === 'anatomy' ? 'none' : 'anatomy')}
-                className={`px-3 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                aria-expanded={mobileDrawer === 'anatomy'}
+                aria-controls="mobile-information-drawer"
+                className={`min-h-10 px-3 rounded-sm font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-[0.96] transition-[transform,background-color,color] ${
                   mobileDrawer === 'anatomy'
-                    ? 'bg-[#18181B] text-white'
-                    : 'text-[#52525B] hover:text-[#18181B]'
+                    ? 'bg-[#F4DD45] text-[#121210]'
+                    : 'text-[#B8B4AA] hover:text-white'
                 }`}
               >
                 <Layers className="w-3 h-3" />
@@ -152,10 +164,12 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setMobileDrawer(mobileDrawer === 'metrics' ? 'none' : 'metrics')}
-                className={`px-3 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                aria-expanded={mobileDrawer === 'metrics'}
+                aria-controls="mobile-information-drawer"
+                className={`min-h-10 px-3 rounded-sm font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 active:scale-[0.96] transition-[transform,background-color,color] ${
                   mobileDrawer === 'metrics'
-                    ? 'bg-[#18181B] text-white'
-                    : 'text-[#52525B] hover:text-[#18181B]'
+                    ? 'bg-[#F4DD45] text-[#121210]'
+                    : 'text-[#B8B4AA] hover:text-white'
                 }`}
               >
                 <Sliders className="w-3 h-3" />
@@ -164,23 +178,24 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setIsCalcOpen(true)}
-                className="px-3 py-1.5 rounded-full font-mono text-[10px] uppercase tracking-wider bg-[#18181B] text-white flex items-center gap-1"
+                className="min-h-10 px-3 rounded-sm font-mono text-[10px] uppercase tracking-wider bg-[#F4DD45] hover:bg-[#F8E66A] text-[#121210] font-semibold flex items-center gap-1 active:scale-[0.96] transition-[transform,background-color]"
               >
                 <Calculator className="w-3 h-3" />
                 <span>Расчет</span>
               </button>
             </div>
-          </div>
+          </nav>
         </main>
 
         {/* DESKTOP RIGHT COLUMN: ИНТЕРАКТИВНЫЕ ПРЕИМУЩЕСТВА & CTA */}
-        <div className="hidden lg:flex w-[300px] xl:w-[330px] shrink-0 h-full border-l border-black/[0.04] bg-[#FBFBFB]/80 backdrop-blur-xs flex-col z-20">
+        <div className="hidden min-[1180px]:flex absolute inset-y-4 right-4 w-[260px] 2xl:w-[304px] border border-white/10 bg-[#0E0E0D]/92 backdrop-blur-2xl flex-col z-20 rounded-sm shadow-[0_24px_80px_rgba(0,0,0,0.28)] overflow-hidden">
           <RightMetricsRail
             currentMode={viewMode}
             onModeChange={handleModeChange}
             onOpenCalculator={() => setIsCalcOpen(true)}
             onOpenConsult={() => setIsConsultOpen(true)}
             onOpenComparison={() => setIsComparisonOpen(true)}
+            onOpenAssembly={() => setIsAssemblyOpen(true)}
             onToggle2D={() => setShow2DFallback(!show2DFallback)}
             is2DActive={show2DFallback}
             selectedId={selectedElementId}
@@ -190,19 +205,25 @@ export const App: React.FC = () => {
 
       {/* MOBILE EXPANDABLE DRAWER (< 1024px) */}
       {mobileDrawer !== 'none' && (
-        <div className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end bg-black/30 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="min-[1180px]:hidden fixed inset-0 z-40 flex flex-col justify-end bg-black/55 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setMobileDrawer('none')}>
           <div
-            className="w-full max-h-[72vh] bg-[#FBFBFB] rounded-t-3xl border-t border-black/10 shadow-[0_-12px_40px_rgba(0,0,0,0.12)] p-4 flex flex-col overflow-hidden"
+            id="mobile-information-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={mobileDrawer === 'anatomy' ? 'Анатомия панели' : 'Показатели системы'}
+            className="w-full max-h-[78vh] bg-[#11110F] rounded-t-md border-t border-[#F4DD45]/35 shadow-[0_-24px_70px_rgba(0,0,0,0.55)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer Drag handle & close */}
-            <div className="flex items-center justify-between pb-3 border-b border-black/[0.04]">
-              <div className="w-12 h-1 rounded-full bg-[#D4D4D8] mx-auto" />
+            <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center pb-3">
+              <span aria-hidden="true" />
+              <div className="w-12 h-1 rounded-full bg-[#F4DD45]/70 mx-auto" aria-hidden="true" />
               <button
                 onClick={() => setMobileDrawer('none')}
-                className="p-1 rounded-full text-[#71717A] hover:text-[#18181B] cursor-pointer"
+                aria-label="Закрыть панель"
+                className="min-h-10 min-w-10 rounded-sm text-[#9D998E] hover:text-white hover:bg-white/10 active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -231,6 +252,10 @@ export const App: React.FC = () => {
                   onOpenComparison={() => {
                     setMobileDrawer('none');
                     setIsComparisonOpen(true);
+                  }}
+                  onOpenAssembly={() => {
+                    setMobileDrawer('none');
+                    setIsAssemblyOpen(true);
                   }}
                   onToggle2D={() => {
                     setMobileDrawer('none');
@@ -263,6 +288,14 @@ export const App: React.FC = () => {
         onClose={() => setIsComparisonOpen(false)}
         onOpenCalculator={() => {
           setIsComparisonOpen(false);
+          setIsCalcOpen(true);
+        }}
+      />
+      <AssemblyStoryModal
+        isOpen={isAssemblyOpen}
+        onClose={() => setIsAssemblyOpen(false)}
+        onOpenCalculator={() => {
+          setIsAssemblyOpen(false);
           setIsCalcOpen(true);
         }}
       />

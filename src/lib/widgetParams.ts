@@ -9,13 +9,14 @@
  * Поддержанные ключи:
  *   ?v=...    | ?mode=...  — режим 3D-сцены
  *   ?open=...              — сразу открыть модалку
+ *   ?embed=1               — встроенный режим без повторной бренд-шапки
  *
  * Неизвестные значения игнорируются (никаких исключений) — виджет остаётся
  * работоспособным при любом мусоре в query-строке.
  */
 import { WidgetViewMode } from '../data/panelConfig';
 
-export type OverlayKey = 'calc' | 'consult' | 'compare';
+export type OverlayKey = 'calc' | 'consult' | 'compare' | 'assembly';
 
 const MODE_ALIASES: Record<string, WidgetViewMode> = {
   assembled: 'assembled',
@@ -43,6 +44,9 @@ const OVERLAY_ALIASES: Record<string, OverlayKey> = {
   compare: 'compare',
   comparison: 'compare',
   sravnenie: 'compare',
+  assembly: 'assembly',
+  montage: 'assembly',
+  montazh: 'assembly',
 };
 
 export interface WidgetParams {
@@ -50,6 +54,8 @@ export interface WidgetParams {
   mode: WidgetViewMode | null;
   /** Модалка, которую надо открыть сразу, либо null. */
   overlay: OverlayKey | null;
+  /** Компактная оболочка для iframe внутри страницы ABG. */
+  embedded: boolean;
   /** Только распознанные значения; нераспознанные сюда не попадают. */
   raw: Record<string, string>;
 }
@@ -65,16 +71,20 @@ export function parseWidgetParams(search: string): WidgetParams {
         ? 'mode'
         : key === 'open' && OVERLAY_ALIASES[normalized] !== undefined
           ? 'open'
+          : key === 'embed' && ['1', 'true', 'yes'].includes(normalized)
+            ? 'embed'
           : null;
     if (known) raw[known] = normalized;
   }
 
   const modeToken = (qs.get('mode') ?? qs.get('v') ?? '').trim().toLowerCase();
   const overlayToken = (qs.get('open') ?? '').trim().toLowerCase();
+  const embedToken = (qs.get('embed') ?? '').trim().toLowerCase();
 
   return {
     mode: MODE_ALIASES[modeToken] ?? null,
     overlay: OVERLAY_ALIASES[overlayToken] ?? null,
+    embedded: ['1', 'true', 'yes'].includes(embedToken),
     raw,
   };
 }
@@ -82,7 +92,7 @@ export function parseWidgetParams(search: string): WidgetParams {
 /** Безопасно читает query-строку браузера. В SSR/тестах возвращает пустые параметры. */
 export function readWidgetParamsFromLocation(): WidgetParams {
   if (typeof window === 'undefined' || !window.location) {
-    return { mode: null, overlay: null, raw: {} };
+    return { mode: null, overlay: null, embedded: false, raw: {} };
   }
   return parseWidgetParams(window.location.search);
 }

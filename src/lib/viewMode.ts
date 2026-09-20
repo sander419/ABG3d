@@ -48,7 +48,9 @@ export interface ModeChangePatch {
 export function modeChangePatch(mode: WidgetViewMode): ModeChangePatch {
   return {
     scrubValue: MODE_DEFAULTS[mode],
-    clearSelection: mode === 'assembled' || mode === 'thermal',
+    // «Арматура» — самостоятельный инженерный обзор. Carry-over карточки слоя
+    // перекрывали сетки и связи в центре сцены, поэтому режим стартует чистым.
+    clearSelection: mode === 'assembled' || mode === 'thermal' || mode === 'structure',
   };
 }
 

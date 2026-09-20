@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox, Html } from '@react-three/drei';
+import { RoundedBox, Html, useTexture } from '@react-three/drei';
 import { easing } from 'maath';
 import { WidgetViewMode, PANEL_CONFIG } from '../../data/panelConfig';
 import {
@@ -12,6 +12,7 @@ import { PeikkoHardware3D } from './PeikkoHardware3D';
 import { SwissCallout } from './SwissCallout';
 import { InvisibleHotspot, HotspotAnnotation } from './InvisibleHotspot';
 import { createPIRShaderMaterial } from './PIRShaderMaterial';
+import { PANEL_GEOMETRY } from '../../lib/panelGeometry';
 
 interface PanelModelProps {
   mode: WidgetViewMode;
@@ -33,6 +34,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   // Progressive loading strategy for procedural materials:
   // Starts with low-resolution blurred proxy (32px), background calculates full 512px maps.
   const { textures, stage } = useProgressiveProceduralTextures();
+  const precastAlbedo = useTexture('/textures/architectural-precast-concrete-v1.webp');
 
   // Active hotspot pop-up state
   const [activeHotspotId, setActiveHotspotId] = useState<string | null>(null);
@@ -46,17 +48,27 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   // Layer dimensions in meters (W: 2.0m, H: 2.4m, D: 390mm)
   const W = 2.0;
   const H = 2.4;
-  const dFacade = 0.07; // 70 mm
-  const dPIR = 0.20;    // 200 mm
-  const dStructural = 0.12; // 120 mm
+  const dFacade = PANEL_GEOMETRY.facade.thickness;
+  const dPIR = PANEL_GEOMETRY.insulation.thickness;
+  const dStructural = PANEL_GEOMETRY.structural.thickness;
 
-  // Rondesignlab / Architectural Gallery:
-  // Instead of an ambiguous flush 0-gap gray block, we employ a deliberate "slight Exploded View" (приоткрытая разборка)
-  // baseline so that the warm architectural facade (70mm #EDEDE9), the warm sand PIR core (200mm #D4CEBE),
-  // and the structural concrete (120mm #D6D3D1) are proudly separated and readable from the very first frame.
-  const baseStructuralZ = -0.155;
-  const basePIRZ = 0.005;
-  const baseFacadeZ = 0.165;
+  // Albedo is an authored, seamless concrete surface. The procedural maps below
+  // remain dedicated non-colour PBR data (micro-relief and roughness), rather
+  // than trying to fake every material property in a single noisy bitmap.
+  useMemo(() => {
+    precastAlbedo.colorSpace = THREE.SRGBColorSpace;
+    precastAlbedo.wrapS = THREE.RepeatWrapping;
+    precastAlbedo.wrapT = THREE.RepeatWrapping;
+    precastAlbedo.repeat.set(1, 1);
+    precastAlbedo.anisotropy = 4;
+    precastAlbedo.needsUpdate = true;
+  }, [precastAlbedo]);
+
+  // In assembly the layers touch: 70 + 200 + 120 = 390 mm.
+  // Only the exploded modes introduce explanatory gaps.
+  const baseStructuralZ = PANEL_GEOMETRY.structural.centerZ;
+  const basePIRZ = PANEL_GEOMETRY.insulation.centerZ;
+  const baseFacadeZ = PANEL_GEOMETRY.facade.centerZ;
 
   // Compute explosion factor k
   let k = 0;
@@ -82,12 +94,13 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const targetPIRZ = basePIRZ + 0.035 * Math.pow(k, 1.2);
   const targetFacadeZ = baseFacadeZ + 0.16 * Math.pow(k, 0.9);
 
-  // Materials with authentic precast textures and micro-relief.
-  // 1. Facade Concrete: warm architectural concrete B35 (#EDEDE9, roughness 0.88)
+  // Materials use a restrained architectural palette: the model is a product
+  // visualisation, not a claim about a specific concrete mix or insulation brand.
+  // 1. Facade concrete: warm, matte factory-cast surface.
   const isFacadeSelected = selectedId === 'facade';
   const facadeMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      map: textures.concreteFacade,
+      map: precastAlbedo,
       bumpMap: textures.concreteBump,
       bumpScale: 0.022,
       roughnessMap: textures.concreteRoughness,
@@ -102,28 +115,37 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       transparent: true,
       opacity: 1,
     });
-  }, [textures]);
+  }, [textures, precastAlbedo]);
 
-  // 2. PIR: Custom procedural closed-cell porosity ShaderMaterial with warm graphite/sandy tone (#D4CEBE)
+  // 2. Insulation: a calm, dense board surface in normal views. The dedicated
+  // shader is used only in thermal mode, where it carries the temperature field.
   const isPirSelected = selectedId === 'insulation';
   const pirShaderMat = useMemo(() => createPIRShaderMaterial(), []);
+  const insulationMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#B9B6AD'),
+      roughness: 0.96,
+      metalness: 0,
+      envMapIntensity: 0.22,
+    });
+  }, []);
 
-  // 3. Structural Concrete: Smooth matte B30 precast concrete (#D6D3D1, roughness 0.86)
+  // 3. Structural concrete: slightly denser and darker than the facade.
   const isStructuralSelected = selectedId === 'structural';
   const structuralMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
-      map: textures.concreteStructural,
+      map: precastAlbedo,
       bumpMap: textures.structuralBump,
       bumpScale: 0.026,
       roughnessMap: textures.structuralRoughness,
       roughness: 0.86,
       metalness: 0.03,
-      color: new THREE.Color('#D6D3D1'),
+      color: new THREE.Color('#C4C1BA'),
       emissive: new THREE.Color('#F59E0B'),
       emissiveIntensity: 0.0,
       envMapIntensity: 0.5,
     });
-  }, [textures]);
+  }, [textures, precastAlbedo]);
 
   // Dynamically synchronize clipping planes to materials with double-sided rendering
   useEffect(() => {
@@ -143,9 +165,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       pirShaderMat.clippingPlanes = planes;
       pirShaderMat.needsUpdate = true;
     }
-  }, [clippingPlanes, facadeMaterial, structuralMaterial, pirShaderMat]);
+    insulationMaterial.clippingPlanes = planes;
+    insulationMaterial.clipShadows = true;
+    insulationMaterial.side = THREE.DoubleSide;
+    insulationMaterial.needsUpdate = true;
+  }, [clippingPlanes, facadeMaterial, structuralMaterial, pirShaderMat, insulationMaterial]);
 
   const isThermal = mode === 'thermal';
+  const isStructure = mode === 'structure';
+  // The sales view keeps the object itself unobstructed. Layer navigation lives
+  // in the rails/callouts; floating HTML targets are reserved for an eventual
+  // dedicated engineering-inspection mode.
+  const showFloatingHotspots = false;
 
   // Thermal tags are 3D-anchored HTML pills. On a wide desktop stage the 2 m slab
   // projects into a narrow strip, so the outer tags must sit further apart in model
@@ -190,6 +221,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         0.42,
         delta
       );
+      pirGroup.current.visible = !isStructure;
     }
 
     // 3. Damp Facade position
@@ -214,8 +246,11 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     // field (the actual subject of the mode) is visible through it. Depth writes are
     // disabled while translucent, otherwise the box's back face would occlude the
     // insulation sitting right behind it.
-    easing.damp(facadeMaterial, 'opacity', isThermal ? 0.3 : 1.0, 0.25, delta);
-    facadeMaterial.depthWrite = !isThermal;
+    easing.damp(facadeMaterial, 'opacity', isThermal ? 0.3 : isStructure ? 0.16 : 1.0, 0.25, delta);
+    structuralMaterial.transparent = isStructure;
+    easing.damp(structuralMaterial, 'opacity', isStructure ? 0.16 : 1.0, 0.25, delta);
+    facadeMaterial.depthWrite = !isThermal && !isStructure;
+    structuralMaterial.depthWrite = !isStructure;
 
     // Progressive bump scale interpolation: soft in blur stage, sharpens to full relief in ready stage
     const targetFacadeBump = stage === 'ready' ? 0.022 : 0.004;
@@ -262,8 +297,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   // on screen the callouts and the tags fought for the same strip (the audit measured
   // 666 px² of text overlap at 390x844). Selecting a layer still shows its callout.
   const showCallouts =
-    mode !== 'thermal' &&
-    (k > 0.15 || mode === 'exploded' || mode === 'structure' || selectedId !== null);
+    showDimensions && mode !== 'thermal' && !compactStage && selectedId !== null;
 
   // Invisible Hotspots Engineering Annotations
   const hotspotAnnotations: Record<string, HotspotAnnotation> = {
@@ -271,48 +305,48 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       id: 'anchors',
       tag: 'PEIKKO PDM',
       title: 'Связи Peikko PDM',
-      spec: 'Нержавеющая сталь B600KX • Терморазрыв',
-      note: 'Диагональные связи проходят сквозь 200 мм PIR-утеплителя, воспринимая вес фасадной плиты и ветровые нагрузки без создания мостиков холода.',
+      spec: 'Состав и материал — по проекту',
+      note: 'Диагональные связи проходят сквозь теплоизоляционный слой и работают в составе проектного конструктивного решения.',
       details: [
-        'Нулевой мостик холода через шов',
-        'Коррозионная стойкость > 100 лет',
-        'Заводской анкерный замок',
+        'Положение определяется проектом',
+        'Узел требует инженерного расчёта',
+        'Монтаж по рабочей документации',
       ],
     },
     pir: {
       id: 'insulation',
-      tag: 'PIR КОНТУР',
-      title: 'PIR Утеплитель 200 мм',
-      spec: 'λ = 0.022 Вт/(м·К) • Замкнутые ячейки',
-      note: 'Бесшовный энергоэффективный сердечник с плотностью >32 кг/м³. Замкнутоячеистая структура исключает водопоглощение (<1%) и усадку со временем.',
+      tag: 'ТЕПЛОВОЙ КОНТУР',
+      title: 'Теплоизоляция 2 × 100 мм*',
+      spec: 'Материал и теплотехнические характеристики — по проекту',
+      note: 'Теплоизоляционный слой между железобетонными оболочками. Тип утеплителя и расчётные характеристики зависят от серии панели и климатического района.',
       details: [
-        'R₀ теплового контура: 9.2 (м²·°C)/Вт*',
-        'Группа горючести Г1 (самозатухающий)',
-        'Стабильность геометрии при морозе',
+        'Два слоя с перехлёстом швов',
+        'Теплотехника — по расчёту проекта',
+        'Материал — по спецификации ABG',
       ],
     },
     pvl: {
       id: 'anchors',
       tag: 'PEIKKO PVL',
       title: 'Тросовые петли PVL',
-      spec: 'Закладные коробки на торцах',
-      note: 'Гибкие стальные тросовые петли в защитных боксах. При монтаже петли связываются арматурным стержнем и замоноличиваются безусадочным бетоном.',
+      spec: 'Соединительные петли в зоне проектного стыка',
+      note: 'Петли устанавливаются в зоне вертикального стыка. После монтажа через них проходит вертикальный стержень, затем узел заполняется согласно рабочей документации.',
       details: [
-        'Монолитный пространственный диск перекрытия',
-        'Высокая сдвиговая прочность стыка',
-        'Монтаж без сварки на объекте',
+        'Положение и тип — по проекту',
+        'Стержень в стыке — по рабочему узлу',
+        'Заполнение — по ППР',
       ],
     },
     facade: {
       id: 'facade',
-      tag: 'ФАСАД B35',
+      tag: 'ФАСАДНЫЙ СЛОЙ',
       title: 'Архитектурный бетон',
-      spec: '70 мм • F300 / W8 • Теплый оттенок #EDEDE9',
-      note: 'Наружный самонесущий слой заводского формования с прецизионными фасками 3 мм. Высокая морозостойкость и устойчивость к ультрафиолету.',
+      spec: '70 мм* • заводское формование',
+      note: 'Наружный защитно-декоративный слой. Класс бетона, фактура и защитные характеристики определяются проектом.',
       details: [
-        'Заводская геометрия с допуском ±1 мм',
-        'Морозостойкость: более 300 циклов (F300)',
-        'Натуральная текстура без окраски',
+        'Толщина показана для примера',
+        'Параметры бетона — по спецификации',
+        'Фактура согласуется с архитектурой',
       ],
     },
   };
@@ -339,7 +373,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         />
 
         {/* Swiss Callout for Facade */}
-        {showCallouts && (
+        {showCallouts && selectedId === 'facade' && (
           <SwissCallout
             position={[-0.85, 0.75, dFacade / 2 + 0.002]}
             layer={layerFacade}
@@ -350,23 +384,46 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         )}
       </group>
 
-      {/* 2. PIR INSULATION (200 mm) with Micro-Fillet */}
+      {/* 2. 200 mm insulation contour. ABG describes it as two 100 mm layers;
+          the small physical split is visible in the exploded view. Thermal mode
+          remains a continuous material so its illustrative colour gradient stays legible. */}
       <group ref={pirGroup} position={[0, 0, basePIRZ]}>
-        <RoundedBox
-          args={[W, H, dPIR]}
-          radius={0.002}
-          smoothness={3}
-          material={pirShaderMat}
-          castShadow
-          receiveShadow
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect('insulation');
-          }}
-        />
+        {isThermal ? (
+          <RoundedBox
+            args={[W, H, dPIR]}
+            radius={0.002}
+            smoothness={3}
+            material={pirShaderMat}
+            castShadow
+            receiveShadow
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect('insulation');
+            }}
+          />
+        ) : (
+          <>
+            {[-1, 1].map((side) => (
+              <RoundedBox
+                key={side}
+                args={[W, H, dPIR / 2]}
+                position={[0, 0, side * (dPIR / 4 + 0.003 * k)]}
+                radius={0.002}
+                smoothness={3}
+                material={insulationMaterial}
+                castShadow
+                receiveShadow
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect('insulation');
+                }}
+              />
+            ))}
+          </>
+        )}
 
         {/* Swiss Callout for PIR */}
-        {showCallouts && (
+        {showCallouts && selectedId === 'insulation' && (
           <SwissCallout
             position={[0.7, 0.3, dPIR / 2 + 0.002]}
             layer={layerPIR}
@@ -393,7 +450,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         />
 
         {/* Swiss Callout for Structural */}
-        {showCallouts && (
+        {showCallouts && selectedId === 'structural' && (
           <SwissCallout
             position={[0.7, -0.65, -dStructural / 2 - 0.002]}
             layer={layerStructural}
@@ -410,11 +467,12 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         structuralZ={targetStructuralZ}
         highlightedId={selectedId}
         onSelect={onSelect}
+        mode={mode}
         clippingPlanes={clippingPlanes}
       />
 
       {/* Swiss Callout for Peikko Hardware */}
-      {showCallouts && (
+      {showCallouts && selectedId === 'anchors' && (
         <group position={[-0.6, 0.0, (targetFacadeZ + targetStructuralZ) / 2]}>
           <SwissCallout
             position={[0, 0, 0]}
@@ -426,8 +484,9 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         </group>
       )}
 
-      {/* 5. INVISIBLE UI HOTSPOTS (Discreet Pulsing Micro-Rings) */}
-      {/* Hotspot 1: Peikko PDM Diagonal Truss Tie */}
+      {/* 5. Engineering annotations stay out of the structure view: the exposed
+          mesh is the primary object there, and HTML rings visually read as defects. */}
+      {showFloatingHotspots && !isStructure && <>
       <InvisibleHotspot
         position={[-0.6, 0.7, (targetFacadeZ + targetStructuralZ) / 2]}
         data={hotspotAnnotations.pdm}
@@ -465,6 +524,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         }}
         onClose={() => setActiveHotspotId(null)}
       />
+      </>}
 
       {/* 6. MINIMALIST HAIRLINE DIMENSION TICKS (When Assembled)
           Плашка «Контур» живёт внизу по центру сцены: правый нижний угол занят
@@ -484,7 +544,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       )}
 
       {/* 6. THERMAL RESTRAINED INFOGRAPHIC */}
-      {isThermal && !sectionFocusNarrow && (
+      {showFloatingHotspots && isThermal && !sectionFocusNarrow && (
         <group>
           {/* Outdoor Frost Tag - attached to top-left of the Facade layer */}
           <group position={[-thermalTagX, 1.3, targetFacadeZ + dFacade / 2]}>
@@ -492,19 +552,19 @@ export const PanelModel: React.FC<PanelModelProps> = ({
               <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#3B82F6] ring-2 ring-[#93C5FD]/60 shrink-0" />
                 <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Снаружи:</span>
-                <span className="font-semibold text-[#1D4ED8]">-20 °C</span>
+                <span className="font-semibold text-[#1D4ED8]">расчётный режим</span>
               </div>
             </Html>
           </group>
 
-          {/* PIR Zero Isotherm Tag - attached to top-center of the PIR foam core */}
+          {/* Insulation contour tag — exact material and thermal profile are project-specific. */}
           <group position={[0.0, 1.3, targetPIRZ]}>
             <Html center distanceFactor={4.8} zIndexRange={[15, 0]} className="pointer-events-none select-none">
               <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3.5 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#10B981] ring-2 ring-[#A7F3D0]/60 shrink-0" />
-                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">0 °C:</span>
-                <span className="hidden sm:inline font-medium text-[#047857]">Внутри PIR</span>
-                <span className="sm:hidden font-medium text-[#047857]">0 °C</span>
+                <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Контур:</span>
+                <span className="hidden sm:inline font-medium text-[#047857]">2 × 100 мм*</span>
+                <span className="sm:hidden font-medium text-[#047857]">2 × 100 мм*</span>
               </div>
             </Html>
           </group>
@@ -515,7 +575,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
               <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[11px] sm:text-xs text-[#18181B] bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1.5 rounded-full border border-black/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)] whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#FDE68A]/60 animate-pulse shrink-0" />
                 <span className="hidden sm:inline text-[#71717A] text-[10px] uppercase tracking-wider">Интерьер:</span>
-                <span className="font-semibold text-[#B45309]">+22 °C</span>
+                <span className="font-semibold text-[#B45309]">расчётный режим</span>
               </div>
             </Html>
           </group>

@@ -288,13 +288,13 @@ function createPIRDiffuseCanvas(size: number = 512): HTMLCanvasElement {
     ctx.fill();
   }
 
-  // Factory technical stamp / logo watermark (маркировка партии PIR-плиты)
+  // Neutral material marking: no third-party product name is rendered in a client demo.
   ctx.save();
   ctx.font = '600 11px monospace';
   ctx.fillStyle = 'rgba(100, 80, 55, 0.32)';
   ctx.letterSpacing = '2px';
-  ctx.fillText('PIRRO / LOGICPIR G2 200MM // λ 0.021', 40, 70);
-  ctx.fillText('CERT EN 13165 CE // DENSITY 34KG/M³', 40, 88);
+  ctx.fillText('EFFECTIVE INSULATION // PROJECT SPECIFICATION', 40, 70);
+  ctx.fillText('MATERIAL / THICKNESS / λ — PER DESIGN DOCUMENTATION', 40, 88);
   ctx.restore();
 
   return canvas;

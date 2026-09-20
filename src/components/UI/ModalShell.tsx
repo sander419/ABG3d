@@ -39,11 +39,37 @@ export const ModalShell: React.FC<ModalShellProps> = ({
     const previouslyFocused = (typeof document !== 'undefined'
       ? (document.activeElement as HTMLElement | null)
       : null);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
         onCloseRef.current();
+        return;
+      }
+
+      if (event.key === 'Tab' && dialogRef.current) {
+        const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )).filter((element) => !element.hasAttribute('hidden') && element.offsetParent !== null);
+
+        if (focusable.length === 0) {
+          event.preventDefault();
+          dialogRef.current.focus();
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const focusOutside = !dialogRef.current.contains(document.activeElement);
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current || focusOutside)) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || focusOutside)) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
 
@@ -58,6 +84,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
     return () => {
       clearTimeout(focusTimer);
       document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
       if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
         previouslyFocused.focus({ preventScroll: true });
       }
@@ -68,7 +95,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 overscroll-contain"
       onClick={closeOnBackdropClick ? onClose : undefined}
       data-testid="modal-backdrop"
     >
@@ -79,7 +106,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
         aria-labelledby={labelledBy}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full bg-[#FBFBFB] rounded-2xl border border-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.12)] text-[#18181B] outline-none select-text ${panelClassName}`}
+        className={`relative w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain bg-[#F5F2EA] rounded-sm border border-[#F4DD45]/30 border-t-2 border-t-[#F4DD45] shadow-[0_28px_90px_rgba(0,0,0,0.5)] text-[#181814] outline-none select-text ${panelClassName}`}
       >
         {children}
       </div>

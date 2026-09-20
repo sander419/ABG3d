@@ -40,7 +40,7 @@ export const DimensionLines3D: React.FC<DimensionLines3DProps> = ({
         </div>
       </Html>
 
-      {/* PIR: 200 mm */}
+      {/* Thermal insulation: 2 × 100 mm in ABG's public construction description. */}
       <Html
         position={[0.15, 0.05, zPIR]}
         center
@@ -49,8 +49,8 @@ export const DimensionLines3D: React.FC<DimensionLines3DProps> = ({
       >
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap">
           <span className="w-2.5 h-[1px] bg-[#A1A1AA]" />
-          <span className="font-semibold text-[#18181B]">200 мм</span>
-          <span className="text-[9px] uppercase tracking-widest text-[#9A9483]">PIR</span>
+          <span className="font-semibold text-[#18181B]">2 × 100 мм</span>
+          <span className="text-[9px] uppercase tracking-widest text-[#9A9483]">Теплоизоляция</span>
         </div>
       </Html>
 

@@ -11,7 +11,7 @@ import {
   preloadProceduralTextures,
   useProgressiveProceduralTextures,
 } from '../../utils/textureGenerator';
-import { RotateCw, Move3d, Hand, RotateCcw, Scissors } from 'lucide-react';
+import { RotateCw, Move3d, Hand, Scissors } from 'lucide-react';
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib';
 import { CrossSectionPlaneHelper, ClippingAxis } from './CrossSectionPlaneHelper';
 import { CrossSectionControl } from './CrossSectionControl';
@@ -140,8 +140,8 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   // Specific 'Interact' toggle: when false (default), 1-finger touches allow page scrolling, 2 fingers rotate
   const [isInteractActive, setIsInteractActive] = useState(false);
 
-  // Progressive procedural textures pipeline state
-  const { stage, progress, resolution, recalculate } = useProgressiveProceduralTextures();
+  // Textures are prepared in the background; progress is deliberately not exposed to clients.
+  useProgressiveProceduralTextures();
 
   // Cross-section clipping plane state
   const [clippingState, setClippingState] = useState<{
@@ -228,23 +228,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
 
   const [resetKey, setResetKey] = useState(0);
 
-  // Ширина самой сцены (канваса), а не окна: на 1024–1279 px оба рейла уже занимают
-  // ~620 px, сцена сжимается до ~400 px, и HUD материалов начинал наезжать на
-  // температурные теги. Ширина меряется ResizeObserver'ом на корневом диве.
   const stageRef = useRef<HTMLDivElement>(null);
-  const [stageW, setStageW] = useState(0);
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    setStageW(Math.round(el.getBoundingClientRect().width));
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (typeof w === 'number') setStageW(Math.round(w));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   const resetCamera = () => {
     if (controlsRef.current) {
@@ -256,7 +240,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   return (
     <div
       ref={stageRef}
-      className="relative w-full h-full select-none overflow-hidden bg-[#FBFBFB]"
+      className="relative w-full h-full select-none overflow-hidden bg-[#121210]"
       style={{ touchAction: isInteractActive ? 'none' : 'pan-y' }}
     >
       {/* 3D WebGL Canvas. Wrapped in an ErrorBoundary: a failed 3D mount (WebGL,
@@ -312,7 +296,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
             drei's `preset` pulls a ~1.5 MB map from raw.githack.com inside Suspense,
             so one blocked third-party request used to blank the whole widget. */}
         <Environment resolution={256} frames={1} environmentIntensity={0.55}>
-          <color attach="background" args={['#33363B']} />
+            <color attach="background" args={['#121210']} />
           {/* Large soft key box above and slightly behind the slab */}
           <Lightformer
             form="rect"
@@ -447,8 +431,8 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           onClick={handleToggleClipping}
           className={`px-3 py-1.5 rounded-full font-mono text-[11px] tracking-tight flex items-center gap-1.5 border shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer ${
             clippingState.enabled
-              ? 'bg-[#18181B] text-white border-black/20 shadow-md ring-2 ring-sky-500/30'
-              : 'bg-white/90 text-[#3F3F46] hover:text-[#18181B] hover:bg-white border-black/[0.08]'
+              ? 'bg-[#F4DD45] text-[#121210] border-[#F4DD45] shadow-md ring-2 ring-[#F4DD45]/25'
+              : 'bg-[#151513]/90 text-[#D8D4C8] hover:text-white hover:bg-[#20201C] border-white/15'
           }`}
           title={
             clippingState.enabled
@@ -456,7 +440,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
               : 'Инструмент сечения (Clipping Plane): послойный разрез панели и обнажение связей'
           }
         >
-          <Scissors className={`w-3.5 h-3.5 shrink-0 ${clippingState.enabled ? 'text-sky-400' : 'text-sky-600'}`} />
+          <Scissors className={`w-3.5 h-3.5 shrink-0 ${clippingState.enabled ? 'text-[#121210]' : 'text-[#F4DD45]'}`} />
           <span className="font-medium whitespace-nowrap">
             {clippingState.enabled ? 'Сечение ВКЛ' : 'Сечение'}
           </span>
@@ -468,8 +452,8 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           onClick={() => setIsInteractActive((prev) => !prev)}
           className={`px-3 py-1.5 rounded-full font-mono text-[11px] tracking-tight flex items-center gap-1.5 border shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer ${
             isInteractActive
-              ? 'bg-[#18181B] text-white border-[#18181B] shadow-md ring-2 ring-black/10'
-              : 'bg-white/90 text-[#3F3F46] hover:text-[#18181B] hover:bg-white border-black/[0.08]'
+              ? 'bg-[#F4DD45] text-[#121210] border-[#F4DD45] shadow-md ring-2 ring-[#F4DD45]/25'
+              : 'bg-[#151513]/90 text-[#D8D4C8] hover:text-white hover:bg-[#20201C] border-white/15'
           }`}
           title={
             isInteractActive
@@ -479,13 +463,13 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         >
           {isInteractActive ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shrink-0" />
-              <Move3d className="w-3.5 h-3.5 text-white shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-[#121210] animate-pulse shrink-0" />
+              <Move3d className="w-3.5 h-3.5 text-[#121210] shrink-0" />
               <span className="font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap">3D Режим Вкл</span>
             </>
           ) : (
             <>
-              <Hand className="w-3.5 h-3.5 text-[#71717A] shrink-0" />
+              <Hand className="w-3.5 h-3.5 text-[#F4DD45] shrink-0" />
               <span className="font-medium whitespace-nowrap">3D Обзор</span>
             </>
           )}
@@ -495,69 +479,14 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         <button
           id="orbit-reset-camera-btn"
           onClick={resetCamera}
-          className="p-2 rounded-full bg-white/90 hover:bg-white text-[#71717A] hover:text-[#18181B] border border-black/[0.08] shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer"
+          className="p-2 rounded-full bg-[#151513]/90 hover:bg-[#20201C] text-[#B8B4AA] hover:text-white border border-white/15 shadow-sm backdrop-blur-md transition-all duration-200 cursor-pointer"
           title="Сбросить ракурс камеры"
         >
           <RotateCw className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Progressive procedural material status indicator + gesture hint.
-          Own zone at the top-left of the stage: the bottom strip belongs to the
-          comparison pill / mobile action bar / stage controls. */}
-      <div className={`absolute top-28 sm:top-32 left-3 sm:left-4 z-20 flex-col items-start gap-2 max-w-[calc(100%-1.5rem)] ${
-        mode === 'thermal' && stageW > 0 && stageW < 640
-          ? 'hidden'
-          : clippingState.enabled
-          ? 'hidden xl:flex'
-          : 'flex'
-      }`}>
-        <div
-          id="progressive-texture-hud"
-          className={`px-2.5 py-1.5 rounded-full border shadow-xs backdrop-blur-md transition-all duration-300 flex items-center gap-2 font-mono text-[10.5px] ${
-            stage === 'ready'
-              ? 'bg-white/90 text-[#3F3F46] border-black/[0.08]'
-              : 'bg-[#18181B]/95 text-white border-black/20 shadow-md ring-1 ring-amber-500/25'
-          }`}
-        >
-          {stage !== 'ready' ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
-              <span className="text-amber-300 font-semibold tracking-wider text-[9.5px] uppercase whitespace-nowrap">
-                {resolution}px Размытие
-              </span>
-              <span className="text-white/40">→</span>
-              <span className="text-white/90 whitespace-nowrap">
-                Расчет 512px ({progress}%)
-              </span>
-              <div className="w-10 h-1.5 rounded-full bg-white/20 overflow-hidden shrink-0">
-                <div
-                  className="h-full bg-amber-400 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="font-medium text-[#27272A] whitespace-nowrap">512px Hi-Res карты</span>
-              <button
-                id="recalc-progressive-texture-btn"
-                onClick={() => recalculate()}
-                title="Смоделировать прогрессивную загрузку: 32px размытие → фоновый расчет 512px"
-                className="p-0.5 hover:bg-black/5 rounded text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Discreet gesture indicator pill on desktop / tablet */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/75 backdrop-blur-xs border border-black/[0.04] text-[10px] font-mono text-[#71717A]">
-          <span>{isInteractActive ? '1 палец: вращение 3D' : '2 пальца: 3D · 1 палец: скролл'}</span>
-        </div>
-      </div>
+      {/* Renderer diagnostics remain internal: technical status never competes with the product. */}
     </div>
   );
 };

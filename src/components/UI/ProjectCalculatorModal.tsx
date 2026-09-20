@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Check, ArrowRight, AlertCircle, Loader2, RotateCcw } from 'lucide-react';
 import { ModalShell } from './ModalShell';
 import { useLeadSubmit } from '../../hooks/useLeadSubmit';
+import { handleRadioKeyDown } from '../../lib/radioKeyboard';
 
 interface ProjectCalculatorModalProps {
   isOpen: boolean;
@@ -36,10 +37,6 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
     if (isOpen) setHoneypot('');
   }, [isOpen]);
 
-  // Illustrative calculations
-  const wallPanelsApprox = Math.round((area * 0.45) * (floors === 1 ? 1.0 : 1.15));
-  const assemblyDays = floors === 1 ? '2–3 дня' : '3–5 дней';
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await submit({
@@ -47,7 +44,6 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
       honeypot,
       areaM2: area,
       floors,
-      panelsApprox: wallPanelsApprox,
     });
   };
 
@@ -55,42 +51,42 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      panelClassName="max-w-lg p-6 sm:p-8"
+      panelClassName="max-w-xl p-5 sm:p-8"
       labelledBy="calculator-modal-title"
     >
       {/* Close Button */}
       <button
         onClick={onClose}
         aria-label="Закрыть калькулятор"
-        className="absolute top-5 right-5 p-2 rounded-full hover:bg-black/5 text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
+        className="absolute top-4 right-4 sm:top-5 sm:right-5 min-h-10 min-w-10 rounded-sm text-[#77746C] hover:bg-[#F4DD45]/15 hover:text-[#181814] active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
 
       {/* Modal Header */}
-      <div className="space-y-1">
+      <div className="space-y-1 border-b border-black/10 pb-5 pr-8">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#71717A]">
-            КАЛЬКУЛЯТОР PREFABDOM
+            ABG / ПРЕДВАРИТЕЛЬНЫЙ ЗАПРОС
           </span>
           <span className="w-1 h-1 rounded-full bg-[#18181B]" />
-          <span className="font-mono text-[9px] uppercase tracking-wider text-[#10B981]">
-            ПРЕДВАРИТЕЛЬНЫЙ РАСЧЕТ
+          <span className="font-mono text-[9px] uppercase tracking-wider text-[#9A7A22]">
+            ДЛЯ ИНЖЕНЕРА
           </span>
         </div>
         <h2
           id="calculator-modal-title"
-          className="text-base sm:text-lg font-mono font-semibold tracking-tight uppercase text-[#18181B]"
+          className="text-lg sm:text-xl font-mono font-semibold tracking-[-0.03em] uppercase text-[#18181B] text-balance"
         >
-          Расчет домокомплекта ЖБИ
+          Запросить предварительный расчёт
         </h2>
-        <p className="text-xs text-[#71717A]">
-          Иллюстративный пример подбора железобетонных сэндвич-панелей 390 мм
+        <p className="max-w-[58ch] text-[13px] sm:text-sm leading-relaxed text-[#625F58] text-pretty">
+          Оставьте исходные параметры — инженер уточнит состав домокомплекта, решения и сроки для вашего проекта.
         </p>
       </div>
 
       {status === 'success' ? (
-        <div className="py-12 flex flex-col items-center text-center space-y-3" data-testid="calculator-success">
+        <div className="py-12 flex flex-col items-center text-center space-y-3" data-testid="calculator-success" role="status">
           <div className="w-12 h-12 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center">
             <Check className="w-6 h-6" />
           </div>
@@ -102,7 +98,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
           </p>
           <button
             onClick={onClose}
-            className="mt-4 px-6 py-2 rounded-xl bg-[#18181B] text-white font-mono text-xs uppercase tracking-wider cursor-pointer"
+            className="mt-4 px-6 py-2 rounded-sm bg-[#181814] text-white font-mono text-xs uppercase tracking-wider active:scale-[0.96] transition-transform cursor-pointer"
           >
             Закрыть
           </button>
@@ -155,17 +151,20 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
             <span className="font-mono text-xs text-[#52525B] uppercase tracking-wider block">
               ЭТАЖНОСТЬ:
             </span>
-            <div className="grid grid-cols-2 gap-2">
+            <div role="radiogroup" aria-label="Этажность дома" className="grid grid-cols-2 gap-1 rounded-sm bg-[#ECE9DF] p-1 border border-black/10">
               {[1, 2].map((num) => (
                 <button
                   key={num}
                   type="button"
-                  aria-pressed={floors === num}
+                  role="radio"
+                  aria-checked={floors === num}
+                  tabIndex={floors === num ? 0 : -1}
+                  onKeyDown={handleRadioKeyDown}
                   onClick={() => setFloors(num)}
-                  className={`py-2 px-3 rounded-xl font-mono text-xs uppercase tracking-wider border transition-all cursor-pointer ${
+                  className={`py-2 px-3 rounded-[2px] font-mono text-xs uppercase tracking-wider border border-transparent active:scale-[0.99] transition-[transform,background-color,color,box-shadow] cursor-pointer ${
                     floors === num
-                      ? 'border-[#18181B] bg-[#18181B] text-white font-semibold'
-                      : 'border-[#E4E4E7] text-[#52525B] hover:border-[#A1A1AA]'
+                      ? 'bg-[#181814] text-white font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.2)]'
+                      : 'text-[#52525B] hover:bg-white/55'
                   }`}
                 >
                   {num} {num === 1 ? 'этаж' : 'этажа'}
@@ -174,41 +173,9 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
             </div>
           </div>
 
-          {/* Live Calculation Output Grid */}
-          <div className="p-4 rounded-xl bg-white border border-black/[0.05] grid grid-cols-3 gap-3 text-center">
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-[#A1A1AA] block">
-                ПАНЕЛЕЙ
-              </span>
-              <span className="font-mono text-sm font-semibold text-[#18181B]">
-                ~{wallPanelsApprox} шт
-              </span>
-              <span className="text-[8px] font-mono text-[#A1A1AA] block mt-0.5">
-                примерный расчет
-              </span>
-            </div>
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-[#A1A1AA] block">
-                МОНТАЖ
-              </span>
-              <span className="font-mono text-sm font-semibold text-[#18181B]">
-                {assemblyDays}
-              </span>
-              <span className="text-[8px] font-mono text-[#A1A1AA] block mt-0.5">
-                на фундамент
-              </span>
-            </div>
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-[#A1A1AA] block">
-                R₀ ТЕПЛО
-              </span>
-              <span className="font-mono text-sm font-semibold text-[#10B981]">
-                9.2
-              </span>
-              <span className="text-[8px] font-mono text-[#A1A1AA] block mt-0.5">
-                (м²·°C)/Вт
-              </span>
-            </div>
+          <div className="p-4 rounded-sm bg-[#FAF9F5] border border-black/10">
+            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#71717A]">В ответ на запрос</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-[#52525B]">Предварительный состав, вопросы к архитектуре, ориентир по этапам и список данных для точного расчёта.</p>
           </div>
 
           {/* Input Phone */}
@@ -217,7 +184,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
               htmlFor="calculator-phone"
               className="font-mono text-[10px] text-[#52525B] uppercase tracking-wider block"
             >
-              ТЕЛЕФОН ДЛЯ ОТПРАВКИ СПЕЦИФИКАЦИИ:
+              ТЕЛЕФОН ДЛЯ СВЯЗИ:
             </label>
             <input
               id="calculator-phone"
@@ -228,12 +195,13 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
               aria-invalid={fieldError ? true : undefined}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className={`w-full px-4 py-2.5 rounded-xl border bg-white font-mono text-xs outline-none transition-colors ${
+              aria-describedby={fieldError ? 'calculator-phone-error' : undefined}
+              className={`w-full min-h-12 px-4 py-2.5 rounded-sm border bg-[#FFFEFA] font-mono text-base sm:text-sm transition-[border-color,box-shadow] ${
                 fieldError ? 'border-red-400 focus:border-red-500' : 'border-[#E4E4E7] focus:border-[#18181B]'
               }`}
             />
             {fieldError && (
-              <p className="text-[10px] font-mono text-red-600" data-testid="calculator-field-error">
+              <p id="calculator-phone-error" className="text-xs font-mono text-red-700" data-testid="calculator-field-error">
                 {fieldError}
               </p>
             )}
@@ -263,7 +231,7 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
             type="submit"
             disabled={isSubmitting}
             data-testid="calculator-submit"
-            className="w-full py-3 rounded-xl bg-[#18181B] hover:bg-black disabled:bg-[#52525B] disabled:cursor-wait text-white font-mono text-xs uppercase tracking-[0.2em] font-semibold transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full min-h-12 py-3 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] disabled:bg-[#A9A59B] disabled:cursor-wait text-[#181814] font-mono text-xs uppercase tracking-[0.16em] font-semibold active:scale-[0.96] transition-[transform,background-color] cursor-pointer flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -277,14 +245,14 @@ export const ProjectCalculatorModal: React.FC<ProjectCalculatorModalProps> = ({
               </>
             ) : (
               <>
-                <span>ПОЛУЧИТЬ РАСЧЕТ И ЧЕРТЕЖИ</span>
+                <span>ОТПРАВИТЬ ПАРАМЕТРЫ ИНЖЕНЕРУ</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}
           </button>
 
-          <div className="text-[9px] font-mono text-[#A1A1AA] text-center">
-            * Все числовые значения толщин, сроков и энергоэффективности являются иллюстративными примерами конструкции/расчета.
+          <div className="text-[11px] leading-relaxed font-mono text-[#7A7770] text-center text-pretty">
+            * Виджет показывает принцип конструкции. Рабочие решения, спецификация и теплотехника выпускаются по проекту.
           </div>
         </form>
       )}

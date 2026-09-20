@@ -49,9 +49,9 @@ const PIRFragmentShader = /* glsl */ `
 
   uniform mat4 modelMatrix;
   uniform float uTime;
-  uniform vec3 uBaseColor;       // Warm honey/amber PIR core (#C9AE81)
-  uniform vec3 uCavityColor;     // Darker micro-cavity tone (#8E6F40)
-  uniform vec3 uWallColor;       // Cell boundary highlight (#EAD8B8)
+  uniform vec3 uBaseColor;       // Neutral mineral-beige insulation core
+  uniform vec3 uCavityColor;     // Restrained cavity tone
+  uniform vec3 uWallColor;       // Subtle cell-wall highlight
   uniform float uCellScale;      // Frequency of closed cells (~70.0 - 110.0)
   uniform float uCavityDepth;    // Bump / cavity depth (~0.65)
   uniform float uSelected;       // Selection highlight lerp (0.0 to 1.0)
@@ -191,7 +191,9 @@ const PIRFragmentShader = /* glsl */ `
     // When uBlurProgress > 0.0, soften high-frequency cellular noise for progressive low-res blur look
     float effectivePoreRaw = mix(poreRaw, 0.0, clamp(uBlurProgress, 0.0, 1.0) * 0.85);
     // Convert to closed-cell cavity value [0.0 = deep cavity, 1.0 = cell wall ridge]
-    float cellStructure = smoothstep(-0.45, 0.55, effectivePoreRaw + macroFlow);
+    // Keep the texture at a material scale: highly contrasted cavity noise reads
+    // as gravel once the panel fills the screen, not as a dense insulation core.
+    float cellStructure = smoothstep(-0.14, 0.20, effectivePoreRaw * 0.22 + macroFlow * 0.12);
 
     // Optimized forward-differences gradient for normal bump mapping across micro-pores
     float eps = 0.0028;
@@ -215,20 +217,20 @@ const PIRFragmentShader = /* glsl */ `
     float diffuseLight = halfLambert1 + halfLambert2;
 
     // Micro-Ambient Occlusion inside deep closed-cell cavities
-    float microAO = mix(0.70, 1.02, cellStructure);
+    float microAO = mix(0.84, 1.0, cellStructure);
 
     // Micro-velvet Fresnel grazing sheen (simulates light catching polyisocyanurate cell walls)
     float NdotV = max(0.0, dot(bumpNormal, V));
-    float foamSheen = pow(1.0 - NdotV, 3.2) * 0.22 * cellStructure;
+    float foamSheen = pow(1.0 - NdotV, 3.2) * 0.08 * cellStructure;
 
     // 3. Color Synthesis
     // Base gradient between cell micro-cavity and cell wall ridge
     vec3 cellColor = mix(uCavityColor, uBaseColor, cellStructure);
     // Highlights on rigid cell wall boundaries
-    cellColor = mix(cellColor, uWallColor, pow(cellStructure, 3.0) * 0.35);
+    cellColor = mix(cellColor, uWallColor, pow(cellStructure, 3.0) * 0.12);
 
     // Add subtle warm tone modulation from laminator foaming
-    cellColor += vec3(macroFlow * 0.06, macroFlow * 0.04, macroFlow * 0.02);
+    cellColor += vec3(macroFlow * 0.025, macroFlow * 0.020, macroFlow * 0.015);
 
     // Apply lighting & micro-AO
     vec3 finalColor = cellColor * (diffuseLight * 0.88 + 0.28) * microAO;
@@ -242,11 +244,9 @@ const PIRFragmentShader = /* glsl */ `
       finalColor = mix(finalColor, finalColor * selectTint + vec3(0.08, 0.07, 0.04), uSelected);
     }
 
-    // B. Thermal Profile Mode: the PIR core IS the thermal barrier, so it carries
-    // the whole -20 °C -> +22 °C field (R0 = 9.2). tZ runs from the interior face
-    // (0.0, +22 °C) to the exterior face (1.0, -20 °C); the previous three-stop mix
-    // saturated into flat paint at both ends, so here the ramp has four anchors and
-    // crosses a near-white 0 °C isotherm band where the temperature actually passes 0.
+    // B. Thermal Profile Mode: a conceptual temperature-gradient visualization.
+    // The color field is illustrative only; actual temperatures, R-values and the
+    // isotherm position belong to a project-specific thermal calculation.
     if (uThermal > 0.01) {
       float tZ = clamp((vObjectPosition.z + 0.1) / 0.2, 0.0, 1.0);
 
@@ -299,18 +299,15 @@ export interface PIRShaderUniforms {
 export function createPIRShaderMaterial(): THREE.ShaderMaterial {
   const uniforms: PIRShaderUniforms = {
     uTime: { value: 0 },
-    // Warm honey/amber polyisocyanurate core (#C9AE81) - matches the shader's documented
-    // intent. The previous #D4CEBE sat within a few percent of the B30/B35 concrete tones,
-    // so the insulation layer visually vanished into the slab.
-    uBaseColor: { value: new THREE.Color(0xC9AE81) },
-    // Deeper cell micro-cavities (#8E6F40)
-    uCavityColor: { value: new THREE.Color(0x8E6F40) },
-    // Cell ridge highlights (#EAD8B8)
-    uWallColor: { value: new THREE.Color(0xEAD8B8) },
-    // Optimal frequency for 2.4m x 1.4m x 0.2m precast slab:
-    // Scale 85.0 delivers crisp closed-cell resolution without aliasing
-    uCellScale: { value: 88.0 },
-    uCavityDepth: { value: 0.65 },
+    // The public ABG materials allow several insulation types. A neutral mineral
+    // beige avoids falsely presenting the widget as a product-specific PIR board.
+    uBaseColor: { value: new THREE.Color(0xBDB7A7) },
+    uCavityColor: { value: new THREE.Color(0xAAA496) },
+    uWallColor: { value: new THREE.Color(0xCAC3B5) },
+    // Broad, low-contrast closed-cell relief reads like an engineered core at a
+    // product-render viewing distance instead of noisy gravel.
+    uCellScale: { value: 30.0 },
+    uCavityDepth: { value: 0.10 },
     uSelected: { value: 0.0 },
     uThermal: { value: 0.0 },
     // 0 °C crossing for a +22 °C / -20 °C pair solved linearly across the 200 mm core:

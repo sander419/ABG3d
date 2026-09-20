@@ -1,6 +1,6 @@
 import React from 'react';
+import { Layers, Link2 } from 'lucide-react';
 import { WidgetViewMode } from '../../data/panelConfig';
-import { Layers, Link2, ShieldCheck, Activity } from 'lucide-react';
 
 interface LeftAnatomyRailProps {
   selectedId: string | null;
@@ -8,190 +8,43 @@ interface LeftAnatomyRailProps {
   currentMode: WidgetViewMode;
 }
 
-export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({
-  selectedId,
-  onSelect,
-}) => {
-  const layers = [
-    {
-      id: 'facade',
-      index: '01',
-      title: 'ФАСАД (ПРИМЕР: 70 ММ*)',
-      spec: 'Заводская геометрия • Бетон B35',
-      thickness: '70 мм*',
-      detail: 'Прецизионные фаски 3 мм, морозостойкость F300, водонепроницаемость W8',
-    },
-    {
-      id: 'insulation',
-      index: '02',
-      title: 'PIR УТЕПЛИТЕЛЬ (ПРИМЕР: 200 ММ*)',
-      spec: 'Монолитный контур • λ = 0.022 Вт/(м·К)',
-      thickness: '200 мм*',
-      detail: 'Замкнутые поры, нулевое влагонакопление (<1%) и отсутствие усадки',
-    },
-    {
-      id: 'structural',
-      index: '03',
-      title: 'НЕСУЩИЙ БЕТОН (ПРИМЕР: 120–150 ММ*)',
-      spec: 'Несущая способность бетона • B30',
-      thickness: '120–150 мм*',
-      detail: 'Конструкционный монолитный остов здания с тепловой инерцией',
-    },
-  ];
+const layers = [
+  { id: 'facade', number: '01', title: 'ФАСАДНЫЙ СЛОЙ', value: '70 ММ*', text: 'Архитектурный железобетон' },
+  { id: 'insulation', number: '02', title: 'ТЕПЛОВОЙ КОНТУР', value: '200 ММ*', text: 'Теплоизоляционный слой по проекту' },
+  { id: 'structural', number: '03', title: 'НЕСУЩИЙ СЛОЙ', value: '120 ММ*', text: 'Железобетонная конструкция панели' },
+];
 
-  const peikkoHardware = [
-    {
-      id: 'anchors',
-      code: 'PDM TIES',
-      title: 'Связи Peikko PDM',
-      desc: 'Диагональные связи сквозь PIR. 100% терморазрыв без мостиков холода.',
-    },
-    {
-      id: 'anchors',
-      code: 'PVL LOOPS',
-      title: 'Тросовые петли PVL',
-      desc: 'Закладные петли на торцах для быстрого герметичного монтажа стыков.',
-    },
-  ];
+export const LeftAnatomyRail: React.FC<LeftAnatomyRailProps> = ({ selectedId, onSelect, currentMode }) => (
+  <aside className="w-full h-full flex flex-col justify-between py-6 px-5 overflow-y-auto no-scrollbar text-[#F5F2EA]">
+    <div>
+      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#F4DD45]">Конструкция</p>
+      <h2 className="mt-2 text-2xl leading-[1.08] font-medium tracking-[-0.04em] text-balance">Анатомия<br />панели</h2>
+      <p className="mt-3 text-[13px] leading-relaxed text-[#AAA69C] text-pretty">Выберите слой — модель покажет его положение и назначение.</p>
 
-  return (
-    <aside className="w-full h-full flex flex-col justify-between py-6 px-6 sm:px-8 select-none overflow-y-auto no-scrollbar">
-      {/* Brand & Studio Sub-Header */}
-      <div className="space-y-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#18181B] font-semibold">
-              ABG // PREFABDOM
-            </span>
-            <span className="w-1 h-1 rounded-full bg-[#18181B]" />
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#71717A]">
-              PRECAST
-            </span>
-          </div>
-          <h2 className="text-xs font-sans font-medium text-[#71717A] tracking-wider uppercase mt-1">
-            Анатомия и конструктив Peikko
-          </h2>
-        </div>
-
-        {/* SECTION 1: ПИРОГ ПАНЕЛИ */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A1A1AA] flex items-center gap-1.5">
-              <Layers className="w-3 h-3 text-[#71717A]" />
-              ПИРОГ СТЕНЫ • 390 ММ
-            </span>
-            <span className="font-mono text-[9px] text-[#A1A1AA]">СНАРУЖИ → ВНУТРЬ</span>
-          </div>
-
-          <div className="space-y-2">
-            {layers.map((layer) => {
-              const isSelected = selectedId === layer.id;
-              return (
-                <div
-                  key={layer.id}
-                  onClick={() => onSelect(isSelected ? null : layer.id)}
-                  className={`group relative p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? 'bg-black/[0.04]'
-                      : 'hover:bg-black/[0.02]'
-                  }`}
-                >
-                  {/* 1px hairline indicator on left */}
-                  <div
-                    className={`absolute left-0 top-3 bottom-3 w-[2px] transition-all duration-300 rounded-full ${
-                      isSelected
-                        ? 'bg-[#18181B]'
-                        : 'bg-transparent group-hover:bg-[#D4D4D8]'
-                    }`}
-                  />
-
-                  <div className="flex items-baseline justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono text-[9px] text-[#71717A] tracking-wider shrink-0">
-                        {layer.index}
-                      </span>
-                      <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] font-semibold text-[#18181B] min-w-0 break-words">
-                        {layer.title}
-                      </h3>
-                    </div>
-                    <span className="font-mono text-[10px] text-[#18181B] font-medium tracking-tight shrink-0 whitespace-nowrap">
-                      {layer.thickness}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-[#52525B] leading-tight mt-1">
-                    {layer.spec}
-                  </p>
-
-                  <div className="text-[9px] font-mono text-[#A1A1AA] uppercase tracking-wider mt-1">
-                    Иллюстративный пример: {layer.thickness}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SECTION 2: СОЕДИНИТЕЛИ PEIKKO */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A1A1AA] flex items-center gap-1.5">
-              <Link2 className="w-3 h-3 text-[#71717A]" />
-              СОЕДИНИТЕЛИ PEIKKO
-            </span>
-            <span className="font-mono text-[9px] text-[#10B981] flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-              0% МОСТИКОВ
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {peikkoHardware.map((item, idx) => {
-              const isSelected = selectedId === 'anchors';
-              return (
-                <div
-                  key={idx}
-                  onClick={() => onSelect(isSelected ? null : 'anchors')}
-                  className={`group relative p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? 'bg-black/[0.04]'
-                      : 'hover:bg-black/[0.02]'
-                  }`}
-                >
-                  <div
-                    className={`absolute left-0 top-3 bottom-3 w-[2px] transition-all duration-300 rounded-full ${
-                      isSelected
-                        ? 'bg-[#18181B]'
-                        : 'bg-transparent group-hover:bg-[#D4D4D8]'
-                    }`}
-                  />
-
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded bg-black/[0.04] text-[#18181B] font-semibold">
-                      {item.code}
-                    </span>
-                    <span className="font-mono text-[9px] text-[#71717A] uppercase tracking-wider">
-                      ВСТРОЕНЫ В ЖБИ
-                    </span>
-                  </div>
-
-                  <h4 className="font-mono text-[11px] font-semibold text-[#18181B] mt-1.5 tracking-tight">
-                    {item.title}
-                  </h4>
-                  <p className="text-[11px] text-[#52525B] leading-relaxed mt-0.5">
-                    {item.desc}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <div className="mt-8 overflow-hidden rounded-sm border border-white/10 bg-white/[0.025] divide-y divide-white/10">
+        {layers.map((layer) => {
+          const active = selectedId === layer.id;
+          return <button key={layer.id} onClick={() => onSelect(active ? null : layer.id)} className={`w-full text-left py-4 px-3 transition-[background-color,color,transform] active:scale-[0.99] cursor-pointer ${active ? 'bg-[#F4DD45]/10 shadow-[inset_2px_0_0_#F4DD45]' : 'hover:bg-white/[0.04]'}`}>
+            <div className="flex items-center justify-between gap-3">
+              <span className={`font-mono text-[10px] tracking-[0.12em] ${active ? 'text-[#F4DD45]' : 'text-[#969187]'}`}>{layer.number} / {layer.title}</span>
+              <span className="font-mono text-[11px] tabular-nums text-[#F5F2EA]">{layer.value}</span>
+            </div>
+            <p className="mt-1.5 pr-3 text-[12px] leading-relaxed text-[#B8B4AA]">{layer.text}</p>
+          </button>;
+        })}
       </div>
 
-      {/* Engineering disclaimer note */}
-      <div className="pt-4 border-t border-black/[0.04] text-[9px] font-mono text-[#A1A1AA] leading-relaxed">
-        * Все размеры толщин и спецификации являются иллюстративными примерами заводской конструкции ЖБИ.
+      <div className="mt-7 rounded-sm border border-white/10 border-l-2 border-l-[#F4DD45] bg-white/[0.025] p-3">
+        <div className="flex gap-2 items-center"><Link2 className="w-4 h-4 text-[#F4DD45]" aria-hidden="true" /><span className="font-mono text-[10px] tracking-[0.14em] text-[#F4DD45]">PEIKKO / УЗЛЫ</span></div>
+        <button onClick={() => onSelect(selectedId === 'anchors' ? null : 'anchors')} className="mt-2 text-left text-[12px] leading-snug text-[#E4E0D6] hover:text-white active:scale-[0.99] transition-[color,transform] cursor-pointer">Соединительные элементы и монтажные петли</button>
+        <p className="mt-2 text-[12px] leading-relaxed text-[#969187]">Показываются в режиме «Арматура»; состав уточняется рабочим проектом.</p>
       </div>
-    </aside>
-  );
-};
+    </div>
+
+    <div className="pt-5 border-t border-white/10 text-[10px] leading-relaxed font-mono text-[#969187]">
+      <Layers className="inline w-3 h-3 mr-1 text-[#F4DD45]" />
+      * Иллюстративная конфигурация. Толщины, класс бетона и узлы согласуются для каждого объекта.
+      <span className="block mt-2 text-[#969187]">{currentMode === 'thermal' ? 'Режим: теплотехника' : 'Режим: анатомия панели'}</span>
+    </div>
+  </aside>
+);

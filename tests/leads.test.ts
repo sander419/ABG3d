@@ -127,6 +127,18 @@ describe('resolveLeadEndpoint', () => {
 });
 
 describe('submitLead', () => {
+  test('быстрое автозаполнение не показывает ложный успех', async () => {
+    let calls = 0;
+    const result = await submitLead(buildLeadPayload(
+      { kind: 'consult', contact: '@user' }, { ...meta, elapsedMs: 100 },
+    ), { endpoint: 'https://example.com/lead', fetchImpl: (async () => {
+      calls += 1;
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch });
+    expect(result.status).toBe('error');
+    if (result.status === 'error') expect(result.reason).toBe('too-fast');
+    expect(calls).toBe(0);
+  });
   const payload = buildLeadPayload({ kind: 'calculator', contact: '+7 999 000-00-00', areaM2: 180 }, meta);
 
   test('200 → success и реальный POST с JSON-телом', async () => {

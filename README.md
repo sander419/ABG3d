@@ -1,13 +1,14 @@
 # ABG PrefabDOM — 3D-виджет ЖБИ-панели
 
 Интерактивный 3D-виджет трёхслойной железобетонной prefab-панели для сайта ABG:
-пирог стены (фасад B35 → PIR-утеплитель → несущий бетон B30), связи Peikko, тепловой профиль,
+пирог стены (фасадный железобетон → утеплитель по проекту → несущий железобетон), связи Peikko, тепловой профиль,
 сравнение с газобетоном, калькулятор проекта и форма «спросить инженера».
 
 |  |  |
 |---|---|
 | Прод | https://abg.hiborg-space.ru/ |
 | Демо встраивания | https://abg.hiborg-space.ru/embed-demo.html |
+| Брендовый предпросмотр | `/abg-preview.html` после сборки или на dev-сервере |
 | Репозиторий | `sander419/ABG3d`, ветка `main` |
 | Хостинг | VPS, отдельный поддомен + отдельный nginx-конфиг + отдельный деплой |
 | Язык интерфейса | русский |
@@ -50,8 +51,8 @@ src/
   lib/widgetParams.ts         — параметры URL (`?v=`, `?mode=`, `?open=`)
   lib/widgetEvents.ts         — события виджета наружу (postMessage)
   hooks/useLeadSubmit.ts      — состояние формы заявки (idle → sending → success | error)
-public/                       — статика как есть: og.png (превью ссылки), embed-demo.html,
-                                fonts/ (self-hosted IBM Plex + fonts.css)
+public/                       — og.png, embed-demo.html, abg-preview.html,
+                                brand/ (официальный логотип), fonts/ (self-hosted IBM Plex)
 scripts/self-host-fonts.py    — загрузка/пересборка локальных шрифтов
 docs/                         — рабочие заметки по правкам виджета + docs/leads-channel.md (канал заявок)
 tests/                        — тесты Bun (логика, заявки, события)

@@ -1,6 +1,6 @@
 import React from 'react';
+import { ArrowRight, FileText, HelpCircle } from 'lucide-react';
 import { WidgetViewMode } from '../../data/panelConfig';
-import { ArrowRight, Compass, Sparkles, HelpCircle, FileText } from 'lucide-react';
 
 interface RightMetricsRailProps {
   currentMode: WidgetViewMode;
@@ -8,174 +8,65 @@ interface RightMetricsRailProps {
   onOpenCalculator: () => void;
   onOpenConsult: () => void;
   onOpenComparison?: () => void;
+  onOpenAssembly?: () => void;
   onToggle2D: () => void;
   is2DActive: boolean;
   selectedId: string | null;
 }
 
+const metrics = [
+  ['ИЗГОТОВЛЕНИЕ', 'ЗАВОДСКОЕ'],
+  ['ТЕПЛОВОЙ КОНТУР', 'ПО ПРОЕКТУ'],
+  ['КОНСТРУКЦИЯ', '390 ММ*'],
+];
+
 export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({
-  currentMode,
-  onModeChange,
-  onOpenCalculator,
-  onOpenConsult,
-  onOpenComparison,
-  onToggle2D,
-  is2DActive,
-  selectedId,
+  currentMode, onOpenCalculator, onOpenConsult, onOpenComparison, onOpenAssembly, onToggle2D, is2DActive, selectedId,
 }) => {
-  const metrics = [
-    {
-      label: 'МОНТАЖ',
-      value: '2–5 ДНЕЙ',
-      note: 'Иллюстративный пример',
-      dotColor: 'bg-[#10B981]',
-    },
-    {
-      label: 'ЭНЕРГИЯ',
-      value: 'КЛАСС А+ / А++',
-      note: 'Иллюстративный пример',
-      dotColor: 'bg-[#3B82F6]',
-    },
-    {
-      label: 'РЕСУРС',
-      value: '100+ ЛЕТ',
-      note: 'Иллюстративный пример',
-      dotColor: 'bg-[#8B5CF6]',
-    },
-    {
-      label: 'R₀ КОНТУРА',
-      value: '9.2 (М²·°C)/ВТ',
-      note: 'Иллюстративный пример',
-      dotColor: 'bg-[#F59E0B]',
-    },
-  ];
+  const focus = selectedId === 'facade' ? 'Фасадный железобетон' : selectedId === 'insulation'
+    ? 'Теплоизоляционный контур' : selectedId === 'structural' ? 'Несущий слой'
+    : selectedId === 'anchors' ? 'Соединительные элементы'
+    : currentMode === 'exploded' ? 'Слои панели' : currentMode === 'structure' ? 'Арматура и связи'
+    : currentMode === 'thermal' ? 'Тепловой контур' : 'Панель в сборе';
 
   return (
-    <aside className="w-full h-full flex flex-col justify-between py-6 px-6 sm:px-8 select-none overflow-y-auto no-scrollbar">
-      <div className="space-y-6">
-        {/* Header */}
+    <aside className="w-full h-full flex flex-col justify-between py-6 px-5 overflow-y-auto no-scrollbar text-[#F5F2EA]">
+      <div className="space-y-8">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#18181B] font-semibold">
-              МЕТРИКИ & CTA
-            </span>
-            <span className="w-1 h-1 rounded-full bg-[#18181B]" />
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#71717A]">
-              ПАРАМЕТРЫ
-            </span>
-          </div>
-          <h2 className="text-xs font-sans font-medium text-[#71717A] tracking-wider uppercase mt-1">
-            Преимущества для заказчика
-          </h2>
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#F4DD45]">AUTOBIOGRAPHY / PREFAB</p>
+          <h2 className="mt-2 text-2xl leading-[1.08] font-medium tracking-[-0.04em] text-balance">Параметры<br />системы</h2>
+          <p className="mt-3 text-[13px] leading-relaxed text-[#AAA69C] text-pretty">Конфигурация для знакомства. Рабочие решения определяются проектом.</p>
         </div>
 
-        {/* SECTION 1: ПОКУПАТЕЛЮ */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A1A1AA]">
-              ПОКАЗАТЕЛИ КАЧЕСТВА
-            </span>
-            <span className="font-mono text-[9px] text-[#A1A1AA]">СТАНДАРТ ABG</span>
-          </div>
-
-          <div className="space-y-2">
-            {metrics.map((m, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-xl hover:bg-black/[0.02] transition-colors flex flex-col justify-center"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${m.dotColor} animate-pulse`} />
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#52525B]">
-                      {m.label}
-                    </span>
-                  </div>
-                  <span className="font-mono text-[11px] font-semibold tracking-tight text-[#18181B]">
-                    {m.value}
-                  </span>
-                </div>
-                <div className="font-mono text-[9px] text-[#A1A1AA] uppercase tracking-wider mt-1 pl-3.5">
-                  {m.note}
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="overflow-hidden rounded-sm border border-white/10 bg-white/[0.025] divide-y divide-white/10">
+          {metrics.map(([label, value]) => (
+            <div key={label} className="py-4 px-3 flex items-end justify-between gap-3">
+              <span className="font-mono text-[10px] tracking-[0.12em] text-[#969187]">{label}</span>
+              <span className="font-mono text-[12px] tabular-nums font-semibold text-[#F5F2EA] text-right">{value}</span>
+            </div>
+          ))}
         </div>
 
-        {/* SECTION 2: ИНСПЕКЦИЯ СЛОЯ / СТАТУС */}
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A1A1AA]">
-              РЕЖИМ ОБЗОРА
-            </span>
-            <span className="font-mono text-[9px] uppercase tracking-wider text-[#18181B] font-mono">
-              {currentMode === 'exploded'
-                ? 'РАЗОБРАН'
-                : currentMode === 'assembled'
-                ? 'СБОРКА'
-                : currentMode === 'structure'
-                ? 'АРМАТУРА'
-                : 'ТЕПЛО'}
-            </span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.03]">
-            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#71717A] block">
-              ФОКУС КАМЕРЫ:
-            </span>
-            <span className="text-[11px] font-medium text-[#18181B] mt-0.5 block">
-              {selectedId === 'facade'
-                ? 'Фасадная плита B35 (70 мм)'
-                : selectedId === 'insulation'
-                ? 'Бесшовный контур PIR (200 мм)'
-                : selectedId === 'structural'
-                ? 'Несущий монолит B30 (120 мм)'
-                : selectedId === 'anchors'
-                ? 'Терморазрыв Peikko PDM + петли PVL'
-                : 'Вся конструкция (390 мм)'}
-            </span>
-          </div>
+        <div className="rounded-sm border border-white/10 border-l-2 border-l-[#F4DD45] bg-white/[0.025] p-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#969187]">В фокусе</p>
+          <p className="mt-1 text-[13px] leading-snug text-[#E4E0D6]">{focus}</p>
+          <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#8B877E]">
+            {currentMode === 'thermal' ? 'Теплотехнический режим' : currentMode === 'structure' ? 'Конструктивный режим' : 'Интерактивная модель'}
+          </p>
         </div>
       </div>
 
-      {/* SECTION 3: ДЕЙСТВИЕ (CTA) */}
-      <div className="space-y-3 pt-4 border-t border-black/[0.04]">
-        {/* Кнопка 1: РАССЧИТАТЬ ПРОЕКТ */}
-        <button
-          onClick={onOpenCalculator}
-          className="w-full py-3 px-4 rounded-xl bg-[#18181B] hover:bg-black text-white text-[11px] font-mono uppercase tracking-[0.2em] font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] touch-manipulation"
-        >
-          <span>РАССЧИТАТЬ ПРОЕКТ</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+      <div className="space-y-3 pt-6 border-t border-white/10">
+        <button onClick={onOpenCalculator} className="w-full min-h-11 py-3 px-4 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] text-[#121210] text-[11px] font-mono uppercase tracking-[0.14em] font-semibold active:scale-[0.96] transition-[transform,background-color] flex items-center justify-center gap-2 cursor-pointer">
+          Рассчитать проект <ArrowRight className="w-3.5 h-3.5" />
         </button>
-
-        {/* Кнопка 2: СПРОСИТЬ ИНЖЕНЕРА */}
-        <button
-          onClick={onOpenConsult}
-          className="w-full py-3 px-4 rounded-xl border border-[#E4E4E7] hover:border-[#18181B] text-[#18181B] text-[11px] font-mono uppercase tracking-[0.2em] font-medium transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer bg-transparent active:scale-[0.99] touch-manipulation"
-        >
-          <span>СПРОСИТЬ ИНЖЕНЕРА</span>
-          <HelpCircle className="w-3.5 h-3.5 text-[#71717A]" />
+        <button onClick={onOpenConsult} className="w-full min-h-11 py-3 px-4 rounded-sm border border-white/20 hover:border-[#F4DD45] text-[#F5F2EA] text-[11px] font-mono uppercase tracking-[0.12em] active:scale-[0.96] transition-[transform,border-color,color] flex items-center justify-center gap-2 cursor-pointer">
+          Спросить инженера <HelpCircle className="w-3.5 h-3.5 text-[#F4DD45]" />
         </button>
-
-        {/* Кнопка 3: СРАВНЕНИЕ С ГАЗОБЕТОНОМ */}
-        {onOpenComparison && (
-          <button
-            onClick={onOpenComparison}
-            className="w-full py-2.5 px-3 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] text-[#52525B] hover:text-[#18181B] text-[10px] font-mono uppercase tracking-[0.16em] transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-black/[0.03]"
-          >
-            <span>ABG VS ГАЗОБЕТОН (ТАБЛИЦА)</span>
-          </button>
-        )}
-
-        {/* Fallback 2D switch */}
-        <button
-          onClick={onToggle2D}
-          className="w-full py-2 text-[10px] font-mono uppercase tracking-[0.16em] text-[#71717A] hover:text-[#18181B] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-        >
-          <FileText className="w-3 h-3" />
-          <span>{is2DActive ? 'ВЕРНУТЬСЯ В 3D' : '2D ЧЕРТЕЖ ПАНЕЛИ'}</span>
+        {onOpenComparison && <button onClick={onOpenComparison} className="w-full min-h-10 py-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[#B8B4AA] hover:text-[#F4DD45] active:scale-[0.96] transition-[transform,color] cursor-pointer">Сравнить технологии</button>}
+        {onOpenAssembly && <button onClick={onOpenAssembly} className="w-full min-h-10 py-2 text-[10px] font-mono uppercase tracking-[0.12em] text-[#B8B4AA] hover:text-[#F4DD45] active:scale-[0.96] transition-[transform,color] cursor-pointer">Как монтируется дом</button>}
+        <button onClick={onToggle2D} className="w-full min-h-10 py-1 text-[10px] font-mono uppercase tracking-[0.12em] text-[#969187] hover:text-white active:scale-[0.96] transition-[transform,color] flex items-center justify-center gap-1.5 cursor-pointer">
+          <FileText className="w-3 h-3" /> {is2DActive ? 'Вернуться в 3D' : 'Открыть 2D-схему'}
         </button>
       </div>
     </aside>

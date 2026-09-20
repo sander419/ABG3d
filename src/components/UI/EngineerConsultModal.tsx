@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Check, Send, AlertCircle, Loader2, RotateCcw } from 'lucide-react';
 import { ModalShell } from './ModalShell';
 import { useLeadSubmit } from '../../hooks/useLeadSubmit';
+import { handleRadioKeyDown } from '../../lib/radioKeyboard';
 
 interface EngineerConsultModalProps {
   isOpen: boolean;
@@ -47,42 +48,42 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      panelClassName="max-w-md p-6 sm:p-8"
+      panelClassName="max-w-lg p-5 sm:p-8"
       labelledBy="consult-modal-title"
     >
       {/* Close Button */}
       <button
         onClick={onClose}
         aria-label="Закрыть форму вопроса"
-        className="absolute top-5 right-5 p-2 rounded-full hover:bg-black/5 text-[#71717A] hover:text-[#18181B] transition-colors cursor-pointer"
+        className="absolute top-4 right-4 sm:top-5 sm:right-5 min-h-10 min-w-10 rounded-sm text-[#77746C] hover:bg-[#F4DD45]/15 hover:text-[#181814] active:scale-[0.96] transition-[transform,background-color,color] cursor-pointer inline-flex items-center justify-center"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
 
       {/* Modal Header */}
-      <div className="space-y-1">
+      <div className="space-y-1 border-b border-black/10 pb-5 pr-8">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#71717A]">
             КОНСУЛЬТАЦИЯ
           </span>
           <span className="w-1 h-1 rounded-full bg-[#18181B]" />
-          <span className="font-mono text-[9px] uppercase tracking-wider text-[#3B82F6]">
+          <span className="font-mono text-[9px] uppercase tracking-wider text-[#9A7A22]">
             ИНЖЕНЕРНЫЙ ОТДЕЛ
           </span>
         </div>
         <h2
           id="consult-modal-title"
-          className="text-base sm:text-lg font-mono font-semibold tracking-tight uppercase text-[#18181B]"
+          className="text-lg sm:text-xl font-mono font-semibold tracking-[-0.03em] uppercase text-[#18181B] text-balance"
         >
           Спросить инженера ABG
         </h2>
-        <p className="text-xs text-[#71717A]">
-          Ответим на технические вопросы по конструктиву и терморазрывам Peikko
+        <p className="max-w-[58ch] text-[13px] sm:text-sm leading-relaxed text-[#625F58] text-pretty">
+          Обсудим конструкцию панели, соединения Peikko и исходные данные вашего проекта.
         </p>
       </div>
 
       {status === 'success' ? (
-        <div className="py-10 flex flex-col items-center text-center space-y-3" data-testid="consult-success">
+        <div className="py-10 flex flex-col items-center text-center space-y-3" data-testid="consult-success" role="status">
           <div className="w-12 h-12 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center">
             <Check className="w-6 h-6" />
           </div>
@@ -94,7 +95,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
           </p>
           <button
             onClick={onClose}
-            className="mt-4 px-6 py-2 rounded-xl bg-[#18181B] text-white font-mono text-xs uppercase tracking-wider cursor-pointer"
+            className="mt-4 px-6 py-2 rounded-sm bg-[#181814] text-white font-mono text-xs uppercase tracking-wider active:scale-[0.96] transition-transform cursor-pointer"
           >
             Закрыть
           </button>
@@ -120,17 +121,20 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
             <span className="font-mono text-[10px] text-[#52525B] uppercase tracking-wider block">
               ТЕМА ВОПРОСА:
             </span>
-            <div className="space-y-1.5">
+            <div role="radiogroup" aria-label="Тема вопроса" className="overflow-hidden rounded-sm border border-black/10 bg-[#FFFEFA] divide-y divide-black/10">
               {TOPICS.map((t) => (
                 <button
                   key={t.id}
                   type="button"
-                  aria-pressed={topic === t.id}
+                  role="radio"
+                  aria-checked={topic === t.id}
+                  tabIndex={topic === t.id ? 0 : -1}
+                  onKeyDown={handleRadioKeyDown}
                   onClick={() => setTopic(t.id)}
-                  className={`w-full py-2 px-3 rounded-xl font-mono text-xs text-left transition-all cursor-pointer flex items-center justify-between ${
+                  className={`w-full py-2.5 px-3 text-left font-mono text-xs transition-[background-color,color,transform] active:scale-[0.99] cursor-pointer flex items-center justify-between ${
                     topic === t.id
-                      ? 'bg-[#18181B] text-white font-medium'
-                      : 'bg-white border border-[#E4E4E7] text-[#52525B] hover:border-[#A1A1AA]'
+                      ? 'bg-[#181814] text-white font-medium'
+                      : 'text-[#52525B] hover:bg-[#F4DD45]/[0.06]'
                   }`}
                 >
                   <span>{t.label}</span>
@@ -155,7 +159,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
               placeholder="Например: интересует возможность установки панорамного остекления в фасадный слой..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-3 rounded-xl border border-[#E4E4E7] focus:border-[#18181B] bg-white font-mono text-xs outline-none transition-colors resize-none"
+              className="w-full p-3 rounded-sm border border-black/10 focus:border-[#9A7A22] bg-[#FFFEFA] font-mono text-base sm:text-sm transition-[border-color,box-shadow] resize-none"
             />
           </div>
 
@@ -176,12 +180,13 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
               aria-invalid={fieldError ? true : undefined}
               value={contact}
               onChange={(e) => setContact(e.target.value)}
-              className={`w-full px-4 py-2.5 rounded-xl border bg-white font-mono text-xs outline-none transition-colors ${
+              aria-describedby={fieldError ? 'consult-contact-error' : undefined}
+              className={`w-full min-h-12 px-4 py-2.5 rounded-sm border bg-[#FFFEFA] font-mono text-base sm:text-sm transition-[border-color,box-shadow] ${
                 fieldError ? 'border-red-400 focus:border-red-500' : 'border-[#E4E4E7] focus:border-[#18181B]'
               }`}
             />
             {fieldError && (
-              <p className="text-[10px] font-mono text-red-600" data-testid="consult-field-error">
+              <p id="consult-contact-error" className="text-xs font-mono text-red-700" data-testid="consult-field-error">
                 {fieldError}
               </p>
             )}
@@ -211,7 +216,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
             type="submit"
             disabled={isSubmitting}
             data-testid="consult-submit"
-            className="w-full py-3 rounded-xl bg-[#18181B] hover:bg-black disabled:bg-[#52525B] disabled:cursor-wait text-white font-mono text-xs uppercase tracking-[0.2em] font-semibold transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="w-full min-h-12 py-3 rounded-sm bg-[#F4DD45] hover:bg-[#F8E66A] disabled:bg-[#A9A59B] disabled:cursor-wait text-[#181814] font-mono text-xs uppercase tracking-[0.16em] font-semibold active:scale-[0.96] transition-[transform,background-color] cursor-pointer flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

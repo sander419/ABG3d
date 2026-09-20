@@ -49,7 +49,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
       max: 0.195,
       step: 0.005,
       label: 'Z · Толщина (390 мм)',
-      sub: 'Послойный срез: Фасад → PIR → Несущий',
+      sub: 'Послойный срез: фасад → теплоизоляция → несущий слой',
     },
     x: {
       min: -1.0,
@@ -75,22 +75,22 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
     if (axis === 'z') {
       if (offset > 0.125) {
         return {
-          layer: 'Фасадный бетон B35 (70 мм)',
-          desc: 'Внешний защитно-декоративный слой. Водонепроницаемость W8, морозостойкость F200.',
+          layer: 'Фасадный слой (70 мм*)',
+          desc: 'Внешний защитно-декоративный слой. Класс бетона и защитные характеристики задаются проектом.',
           color: 'text-sky-700',
           bg: 'bg-sky-50 border-sky-200/60',
         };
       } else if (offset >= -0.075) {
         return {
-          layer: 'Термоизоляционный PIR (200 мм)',
-          desc: 'Сердечник с закрытыми порами (λ = 0.022 Вт/(м·К)). Видны гильзы и диагональные анкеры Peikko PDM.',
+          layer: 'Теплоизоляционный слой (200 мм*)',
+          desc: 'Материал и теплотехнические характеристики выбираются для конкретного проекта. На схеме показан принцип связей между слоями.',
           color: 'text-amber-800',
           bg: 'bg-amber-50 border-amber-200/60',
         };
       } else {
         return {
-          layer: 'Несущий железобетон B30 (120 мм)',
-          desc: 'Внутренний силовой контур. Воспринимает нагрузку перекрытий, интегрированы петлевые коробки Peikko PVL.',
+          layer: 'Несущий железобетон (120 мм*)',
+          desc: 'Внутренний силовой контур. Сечения, армирование и монтажные элементы определяются рабочей документацией.',
           color: 'text-zinc-800',
           bg: 'bg-zinc-100 border-zinc-200',
         };
@@ -98,14 +98,14 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
     } else if (axis === 'x') {
       return {
         layer: `Вертикальный срез на ${offsetMm > 0 ? `+${offsetMm}` : offsetMm} мм`,
-        desc: 'Видно сквозное сечение сэндвич-панели 390 мм и положение анкеров относительно граней.',
+        desc: 'Видно сквозное сечение трёхслойной панели и принцип расположения связей между слоями.',
         color: 'text-emerald-800',
         bg: 'bg-emerald-50 border-emerald-200/60',
       };
     } else {
       return {
         layer: `Горизонтальный срез на ${offsetMm > 0 ? `+${offsetMm}` : offsetMm} мм`,
-        desc: 'Поперечный вид сверху вниз: контроль непрерывности PIR-барьера и отсутствия термомостиков.',
+        desc: 'Поперечный вид сверху вниз: проверка расположения теплоизоляционного слоя и связей на иллюстративной модели.',
         color: 'text-indigo-800',
         bg: 'bg-indigo-50 border-indigo-200/60',
       };
@@ -240,7 +240,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
           {axis === 'z' && (
             <div className="flex justify-between text-[8px] font-mono text-[#A1A1AA] pt-1">
               <span>Несущий (-195)</span>
-              <span className="text-amber-600/90 font-medium">PIR 200мм (0)</span>
+              <span className="text-amber-600/90 font-medium">Теплоизоляция (0)</span>
               <span>Фасад (+195)</span>
             </div>
           )}
@@ -268,7 +268,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
                 onClick={() => onChangeOffset(0.025)}
                 className="px-2 py-1 rounded-md bg-black/[0.03] hover:bg-black/[0.07] text-[#3F3F46] hover:text-[#18181B] transition-colors cursor-pointer"
               >
-                PIR Сердечник
+                Теплоизоляция
               </button>
               <button
                 onClick={() => onChangeOffset(0.125)}

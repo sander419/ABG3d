@@ -12,21 +12,22 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
   onSelectLayer,
 }) => {
   return (
-    <div className="w-full h-full flex flex-col justify-between p-4 sm:p-8 bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-black/5 shadow-sm text-[#18181B] select-none overflow-auto">
+    <div className="w-full h-full flex flex-col justify-between p-4 sm:p-8 bg-[#F5F2EA]/95 backdrop-blur-xl rounded-sm border border-[#F4DD45]/30 border-t-2 border-t-[#F4DD45] shadow-[0_20px_60px_rgba(0,0,0,0.2)] text-[#181814] select-none overflow-auto">
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-black/5 pb-3 sm:pb-4 gap-2">
         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-[#18181B] text-white rounded-full text-[9px] sm:text-[10px] font-mono uppercase tracking-widest w-fit">
+          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-[#181814] text-white rounded-sm text-[9px] sm:text-[10px] font-mono uppercase tracking-widest w-fit">
             2D Архитектурный разрез
           </span>
           <span className="text-[10px] sm:text-xs font-mono text-[#71717A]">
-            Масштаб 1:10 • Толщина: 390 мм
+            Схема состава • Толщина: 390 мм
           </span>
         </div>
         <button
           onClick={onClose}
-          className="p-2 sm:p-1.5 rounded-full hover:bg-black/5 text-[#71717A] hover:text-[#18181B] transition-colors"
+          className="p-2 sm:p-1.5 rounded-sm hover:bg-[#F4DD45]/15 text-[#77746C] hover:text-[#181814] active:scale-[0.96] transition-[transform,background-color,color]"
           title="Закрыть"
+          aria-label="Закрыть 2D-схему"
         >
           <X className="w-4 h-4" />
         </button>
@@ -36,7 +37,8 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
       <div className="my-auto py-6 flex flex-col items-center justify-center">
         <svg
           viewBox="0 0 800 420"
-          className="w-full max-w-3xl h-auto border border-black/5 bg-[#FAFAFA] rounded-2xl p-4 shadow-sm"
+          aria-label="Схематический разрез трёхслойной панели: 70, 200 и 120 миллиметров"
+          className="w-full max-w-3xl h-auto border border-black/10 bg-[#FAF9F5] rounded-sm p-4 shadow-sm"
         >
           <defs>
             {/* Fine architectural stipple for concrete */}
@@ -72,11 +74,11 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
               ФАСАД
             </text>
             <text x="155" y="205" fill="#71717A" fontSize="9" fontFamily="monospace" textAnchor="middle">
-              70 мм • B35
+              70 мм • по проекту
             </text>
           </g>
 
-          {/* LAYER 2: PIR Insulation (200 mm) */}
+          {/* LAYER 2: insulation (200 mm illustrative configuration) */}
           <g
             className="cursor-pointer transition-opacity hover:opacity-85"
             onClick={() => onSelectLayer('insulation')}
@@ -91,10 +93,10 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
               strokeWidth="1.2"
             />
             <text x="365" y="185" fill="#18181B" fontSize="12" fontFamily="sans-serif" textAnchor="middle" fontWeight="600">
-              PIR УТЕПЛИТЕЛЬ
+              ТЕПЛОИЗОЛЯЦИЯ
             </text>
             <text x="365" y="205" fill="#52525B" fontSize="10" fontFamily="monospace" textAnchor="middle">
-              200 мм • λ = 0.022 Вт/(м·К)
+              200 мм • по проекту
             </text>
           </g>
 
@@ -114,10 +116,10 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
             />
             <rect x="520" y="70" width="180" height="240" fill="url(#concrete-dots)" />
             <text x="610" y="185" fill="#18181B" fontSize="11" fontFamily="sans-serif" textAnchor="middle" fontWeight="600">
-              НЕСУЩИЙ МОНОЛИТ
+              НЕСУЩИЙ ЖЕЛЕЗОБЕТОН
             </text>
             <text x="610" y="205" fill="#71717A" fontSize="9" fontFamily="monospace" textAnchor="middle">
-              120 мм • B30
+              120 мм • по проекту
             </text>
           </g>
 
@@ -162,7 +164,6 @@ export const FallbackBlueprint: React.FC<FallbackBlueprintProps> = ({
           <Info className="w-3.5 h-3.5 text-[#18181B]" />
           <span>Нажмите на любой слой для просмотра технических характеристик</span>
         </div>
-        <span>ABG PrefabDOM</span>
       </div>
     </div>
   );

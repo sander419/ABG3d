@@ -221,7 +221,7 @@ function readEnvEndpoint(): string | null {
   }
 }
 
-export type SubmitFailureReason = 'no-endpoint' | 'network' | 'timeout' | 'http';
+export type SubmitFailureReason = 'no-endpoint' | 'network' | 'timeout' | 'http' | 'too-fast';
 
 export type SubmitResult =
   | { status: 'success'; httpStatus: number; skippedAsBot?: boolean; responseId?: string }
@@ -240,6 +240,7 @@ export interface SubmitOptions {
 export const DEFAULT_TIMEOUT_MS = 12000;
 
 const MESSAGES: Record<SubmitFailureReason, string> = {
+  'too-fast': 'Пожалуйста, проверьте контакт и повторите отправку.',
   'no-endpoint': 'Отправка сейчас недоступна: канал заявок не настроен.',
   network: 'Не удалось связаться с сервером заявок. Проверьте связь и повторите отправку.',
   timeout: 'Сервер не ответил вовремя. Повторите отправку — данные сохранены.',
@@ -252,6 +253,11 @@ const MESSAGES: Record<SubmitFailureReason, string> = {
  * а введённые данные остаются в форме.
  */
 export async function submitLead(payload: LeadPayload, options: SubmitOptions = {}): Promise<SubmitResult> {
+  // Autofill or reopening a completed form can be faster than the spam threshold.
+  // Never tell that real user their unsent request was delivered.
+  if (!(payload.honeypot ?? '').trim() && payload.elapsedMs < MIN_FILL_MS) {
+    return { status: 'error', reason: 'too-fast', message: MESSAGES['too-fast'] };
+  }
   if (isLikelyBot({ honeypot: payload.honeypot, elapsedMs: payload.elapsedMs })) {
     // Спам-боту не сообщаем, что его распознали: сети не касаемся вообще.
     return { status: 'success', httpStatus: 0, skippedAsBot: true };
