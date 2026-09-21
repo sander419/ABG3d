@@ -131,7 +131,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
   return (
     <div
       id="cross-section-panel-dock"
-      className="pointer-events-auto w-[320px] max-w-[92vw] select-none border border-black/10 bg-[#F3F0E9]/95 p-3.5 text-[#1D1C19] shadow-[0_16px_52px_rgba(34,30,24,0.16)] backdrop-blur-xl transition-all duration-200 xs:w-[350px] sm:w-[380px] sm:p-4"
+      className="pointer-events-auto w-[min(300px,calc(100vw-1.5rem))] select-none border border-black/10 bg-[#F3F0E9]/95 p-3 text-[#1D1C19] shadow-[0_16px_52px_rgba(34,30,24,0.16)] backdrop-blur-xl transition-all duration-200 sm:w-[320px]"
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
     >
@@ -148,8 +148,8 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
             </div>
-            <h4 className="text-[12.5px] font-semibold text-[#18181B] tracking-tight leading-tight">
-              Сечение панели 3D
+            <h4 className="text-[12px] font-semibold text-[#18181B] tracking-tight leading-tight">
+              Разрез панели
             </h4>
           </div>
         </div>
@@ -177,7 +177,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
       </div>
 
       {/* Axis Selector Buttons */}
-      <div className="mt-2.5 grid grid-cols-3 gap-1 p-1 rounded-xl bg-[#F4F4F5] font-mono text-[10px]">
+      <div className="mt-2 grid grid-cols-3 gap-1 p-1 rounded-lg bg-[#F4F4F5] font-mono text-[9px]">
         {(['z', 'x', 'y'] as ClippingAxis[]).map((a) => {
           const isSelected = axis === a;
           const axisLabels: Record<ClippingAxis, string> = {
@@ -189,7 +189,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
             <button
               key={a}
               onClick={() => onChangeAxis(a)}
-              className={`py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer font-semibold uppercase tracking-wider text-center ${
+              className={`py-1.5 px-1 rounded-md transition-all duration-150 cursor-pointer font-semibold uppercase tracking-wider text-center ${
                 isSelected
                   ? 'bg-white text-[#18181B] shadow-xs'
                   : 'text-[#71717A] hover:text-[#18181B]'
@@ -202,9 +202,9 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
       </div>
 
       {/* Slider Control Bar */}
-      <div className="mt-3 space-y-1.5">
+      <div className="mt-2.5 space-y-1.5">
         <div className="flex items-center justify-between text-[11px] font-mono">
-          <span className="text-[#71717A]">{activeRange.sub}</span>
+          <span className="max-w-[210px] truncate text-[#71717A]">{activeRange.sub}</span>
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-[#18181B] bg-black/[0.04] px-2 py-0.5 rounded-md">
               {offsetMm > 0 ? `+${offsetMm}` : offsetMm} мм
@@ -232,7 +232,7 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
             step={activeRange.step}
             value={offset}
             onChange={(e) => onChangeOffset(parseFloat(e.target.value))}
-            className="w-full h-2 bg-[#E4E4E7] rounded-lg appearance-none cursor-ew-resize accent-sky-600 focus:outline-hidden"
+            className="w-full h-2 bg-[#E4E4E7] rounded-lg appearance-none cursor-ew-resize accent-sky-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#947552]"
             style={{ touchAction: 'none' }}
           />
 
@@ -248,18 +248,18 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
       </div>
 
       {/* Layer Insight Placard */}
-      <div className={`mt-2.5 p-2 rounded-xl border text-[10.5px] leading-relaxed ${analysis.bg}`}>
+      <div className={`mt-2 p-2 rounded-lg border text-[10px] leading-relaxed ${analysis.bg}`}>
         <div className="flex items-center justify-between font-mono font-semibold text-[10px] uppercase tracking-wider mb-0.5">
           <span className={analysis.color}>{analysis.layer}</span>
           <span className="text-[9px] text-[#71717A]">
             {inverted ? 'Инвертирован ⇄' : 'Прямой рез'}
           </span>
         </div>
-        <p className="text-[#3F3F46] text-[10px] leading-snug">{analysis.desc}</p>
+        <p className="hidden text-[#3F3F46] text-[9.5px] leading-snug sm:block">{analysis.desc}</p>
       </div>
 
       {/* Quick Presets */}
-      <div className="mt-2.5 pt-2 border-t border-black/[0.06] flex items-center justify-between gap-1.5 font-mono text-[9.5px]">
+      <div className="mt-2.5 hidden border-t border-black/[0.06] pt-2 sm:flex items-center justify-between gap-1.5 font-mono text-[9.5px]">
         <span className="text-[#71717A] uppercase tracking-wider text-[8.5px]">Пресеты:</span>
         <div className="flex items-center gap-1">
           {axis === 'z' ? (

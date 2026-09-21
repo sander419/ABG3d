@@ -13,19 +13,15 @@ export const LayerDetailCard: React.FC<LayerDetailCardProps> = ({ selectedId, on
   if (!layer) return null;
 
   return (
-    <section id="layer-detail-dock" aria-live="polite" className="absolute bottom-20 left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 bg-[#F3F0E9]/97 p-5 text-[#1D1C19] shadow-[0_24px_70px_rgba(34,30,24,0.2)] ring-1 ring-black/10 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200 sm:bottom-24 min-[1180px]:bottom-6">
+    <section id="layer-detail-dock" aria-live="polite" className="pointer-events-auto absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-30 hidden w-[min(280px,calc(100vw-2rem))] -translate-x-1/2 border border-black/10 bg-[#F3F0E9]/95 px-4 py-3 text-[#1D1C19] shadow-[0_16px_44px_rgba(34,30,24,0.16)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200 md:block min-[1180px]:hidden">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[9px] uppercase tracking-[0.18em] text-[#8B6F4F]">Слой {layer.index} / {layer.thickness}</p>
-          <h3 className="mt-1.5 text-[20px] font-normal leading-tight tracking-[-0.035em]">{layer.title}</h3>
+          <h3 className="mt-1 text-[16px] font-normal leading-tight tracking-[-0.03em]">{layer.title}</h3>
         </div>
-        <button onClick={onClose} aria-label="Закрыть сведения о слое" className="grid h-9 w-9 shrink-0 place-items-center text-[#777168] transition-colors hover:bg-black/5 hover:text-black"><X className="h-4 w-4" /></button>
+        <button onClick={onClose} aria-label="Закрыть сведения о слое" className="grid h-7 w-7 shrink-0 place-items-center text-[#777168] transition-colors hover:bg-black/5 hover:text-black"><X className="h-3.5 w-3.5" /></button>
       </div>
-      <p className="mt-3 text-[12px] leading-relaxed text-[#6F695F]">{layer.subtitle}</p>
-      <div className="mt-4 flex items-start justify-between gap-5 border-t border-black/12 pt-3">
-        <span className="text-[9px] uppercase tracking-[0.12em] text-[#928A7E]">Спецификация</span>
-        <span className="text-right font-mono text-[10px] text-[#34312C]">{layer.spec}</span>
-      </div>
+      <p className="mt-2 line-clamp-1 text-[11px] leading-relaxed text-[#6F695F]">{layer.subtitle}</p>
     </section>
   );
 };

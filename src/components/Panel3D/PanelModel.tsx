@@ -1,9 +1,10 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RoundedBox, Html, useTexture } from '@react-three/drei';
 import { easing } from 'maath';
-import { WidgetViewMode, PANEL_CONFIG } from '../../data/panelConfig';
+import { PanelDemoVariant, WidgetViewMode, PANEL_CONFIG } from '../../data/panelConfig';
 import {
   GeneratedTextures,
   useProgressiveProceduralTextures,
@@ -13,28 +14,55 @@ import { SwissCallout } from './SwissCallout';
 import { InvisibleHotspot, HotspotAnnotation } from './InvisibleHotspot';
 import { createPIRShaderMaterial } from './PIRShaderMaterial';
 import { PANEL_GEOMETRY } from '../../lib/panelGeometry';
+import { CornerJoint, ScenarioLayerExtras, syncScenarioClipping } from './PanelScenarioGeometry';
+import { PerforatedSlab } from './PerforatedSlab';
+import { Opening, WINDOW_OPENINGS } from '../../lib/panelScenarios';
 
 interface PanelModelProps {
   mode: WidgetViewMode;
   scrubProgress?: number; // 0 to 1
   selectedId: string | null;
   onSelect: (id: string) => void;
-  showDimensions: boolean;
   clippingPlanes?: THREE.Plane[];
+  demoVariant?: PanelDemoVariant;
 }
+
+interface LayerSlabProps {
+  size: [number, number, number];
+  material: THREE.Material;
+  openings?: readonly Opening[];
+  position?: [number, number, number];
+  radius: number;
+  smoothness: number;
+  onClick: (event: ThreeEvent<MouseEvent>) => void;
+}
+
+// A plain rounded slab, or the same slab with openings cut through its full thickness.
+const LayerSlab: React.FC<LayerSlabProps> = ({ size, material, openings, position, radius, smoothness, onClick }) => (
+  openings
+    ? <PerforatedSlab width={size[0]} height={size[1]} depth={size[2]} openings={openings} material={material} position={position} onClick={onClick} />
+    : <RoundedBox args={size} position={position} radius={radius} smoothness={smoothness} material={material} castShadow receiveShadow onClick={onClick} />
+);
 
 export const PanelModel: React.FC<PanelModelProps> = ({
   mode,
   scrubProgress,
   selectedId,
   onSelect,
-  showDimensions,
   clippingPlanes,
+  demoVariant = 'standard',
 }) => {
   // Progressive loading strategy for procedural materials:
   // Starts with low-resolution blurred proxy (32px), background calculates full 512px maps.
   const { textures, stage } = useProgressiveProceduralTextures();
-  const precastAlbedo = useTexture('/textures/architectural-precast-concrete-v1.webp');
+  const { size: viewportSize } = useThree();
+  // Phones do not benefit from a 768px albedo inside a ~390px canvas. Keep the
+  // same material treatment, but choose a smaller source before the texture
+  // enters Drei's loader and cache.
+  const precastAlbedoPath = viewportSize.width < 640
+    ? '/textures/architectural-precast-concrete-mobile.webp'
+    : '/textures/architectural-precast-concrete-v1.webp';
+  const precastAlbedo = useTexture(precastAlbedoPath);
 
   // Active hotspot pop-up state
   const [activeHotspotId, setActiveHotspotId] = useState<string | null>(null);
@@ -46,8 +74,9 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const rootGroup = useRef<THREE.Group>(null);
 
   // Layer dimensions in meters (W: 2.0m, H: 2.4m, D: 390mm)
-  const W = 2.0;
-  const H = 2.4;
+  const W = PANEL_GEOMETRY.width;
+  const H = PANEL_GEOMETRY.height;
+  const openings = demoVariant === 'windows' ? WINDOW_OPENINGS : undefined;
   const dFacade = PANEL_GEOMETRY.facade.thickness;
   const dPIR = PANEL_GEOMETRY.insulation.thickness;
   const dStructural = PANEL_GEOMETRY.structural.thickness;
@@ -169,10 +198,15 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     insulationMaterial.clipShadows = true;
     insulationMaterial.side = THREE.DoubleSide;
     insulationMaterial.needsUpdate = true;
+
+    syncScenarioClipping(planes);
   }, [clippingPlanes, facadeMaterial, structuralMaterial, pirShaderMat, insulationMaterial]);
 
   const isThermal = mode === 'thermal';
   const isStructure = mode === 'structure';
+  // Services demo: the facade becomes a veil and the insulation is hidden so the
+  // sleeves in the inner wythe can be read; it is a presentation cut-away.
+  const isCutaway = demoVariant === 'services';
   // The sales view keeps the object itself unobstructed. Layer navigation lives
   // in the rails/callouts; floating HTML targets are reserved for an eventual
   // dedicated engineering-inspection mode.
@@ -181,7 +215,6 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   // Thermal tags are 3D-anchored HTML pills. On a wide desktop stage the 2 m slab
   // projects into a narrow strip, so the outer tags must sit further apart in model
   // space than on a phone, where the panel already fills the whole canvas width.
-  const { size: viewportSize } = useThree();
   const thermalTagX = viewportSize.width < 640 ? 0.9 : 1.25;
 
   // Единая политика «один голос за раз» на узкой сцене (см. docs/layout-overlap-fixes.md):
@@ -221,7 +254,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         0.42,
         delta
       );
-      pirGroup.current.visible = !isStructure;
+      pirGroup.current.visible = !isStructure && !isCutaway;
     }
 
     // 3. Damp Facade position
@@ -246,10 +279,10 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     // field (the actual subject of the mode) is visible through it. Depth writes are
     // disabled while translucent, otherwise the box's back face would occlude the
     // insulation sitting right behind it.
-    easing.damp(facadeMaterial, 'opacity', isThermal ? 0.3 : isStructure ? 0.16 : 1.0, 0.25, delta);
+    easing.damp(facadeMaterial, 'opacity', isThermal ? 0.3 : isStructure ? 0.16 : isCutaway ? 0.12 : 1.0, 0.25, delta);
     structuralMaterial.transparent = isStructure;
     easing.damp(structuralMaterial, 'opacity', isStructure ? 0.16 : 1.0, 0.25, delta);
-    facadeMaterial.depthWrite = !isThermal && !isStructure;
+    facadeMaterial.depthWrite = !isThermal && !isStructure && !isCutaway;
     structuralMaterial.depthWrite = !isStructure;
 
     // Progressive bump scale interpolation: soft in blur stage, sharpens to full relief in ready stage
@@ -293,11 +326,10 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const layerStructural = PANEL_CONFIG.layers[2];
   const layerAnchors = PANEL_CONFIG.layers[3];
 
-  // In "ТЕПЛО" the layer placcards are replaced by the three temperature tags: with both
-  // on screen the callouts and the tags fought for the same strip (the audit measured
-  // 666 px² of text overlap at 390x844). Selecting a layer still shows its callout.
-  const showCallouts =
-    showDimensions && mode !== 'thermal' && !compactStage && selectedId !== null;
+  // Layer details belong to the rails, where they stay readable and never cover the
+  // product. The 3D scene is deliberately kept free of HTML placards; this also makes
+  // orbiting and inspecting the reinforcement feel like a real product viewer.
+  const showCallouts = false;
 
   // Invisible Hotspots Engineering Annotations
   const hotspotAnnotations: Record<string, HotspotAnnotation> = {
@@ -359,18 +391,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
           geometry-less mesh, so the layers silently fell back to R3F's default white
           MeshBasicMaterial (unlit). Material/props go directly on RoundedBox. */}
       <group ref={facadeGroup} position={[0, 0, baseFacadeZ]}>
-        <RoundedBox
-          args={[W, H, dFacade]}
+        <LayerSlab
+          size={[W, H, dFacade]}
           radius={0.003} // 3 mm bevel to catch highlights
           smoothness={4}
           material={facadeMaterial}
-          castShadow
-          receiveShadow
+          openings={openings}
           onClick={(e) => {
             e.stopPropagation();
             onSelect('facade');
           }}
         />
+        <ScenarioLayerExtras variant={demoVariant} layer="facade" material={facadeMaterial} layerCenterZ={baseFacadeZ} onSelect={onSelect} />
 
         {/* Swiss Callout for Facade */}
         {showCallouts && selectedId === 'facade' && (
@@ -384,18 +416,19 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         )}
       </group>
 
+      {demoVariant === 'corner' && <CornerJoint />}
+
       {/* 2. 200 mm insulation contour. ABG describes it as two 100 mm layers;
           the small physical split is visible in the exploded view. Thermal mode
           remains a continuous material so its illustrative colour gradient stays legible. */}
       <group ref={pirGroup} position={[0, 0, basePIRZ]}>
         {isThermal ? (
-          <RoundedBox
-            args={[W, H, dPIR]}
+          <LayerSlab
+            size={[W, H, dPIR]}
             radius={0.002}
             smoothness={3}
             material={pirShaderMat}
-            castShadow
-            receiveShadow
+            openings={openings}
             onClick={(e) => {
               e.stopPropagation();
               onSelect('insulation');
@@ -404,15 +437,14 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         ) : (
           <>
             {[-1, 1].map((side) => (
-              <RoundedBox
+              <LayerSlab
                 key={side}
-                args={[W, H, dPIR / 2]}
+                size={[W, H, dPIR / 2]}
                 position={[0, 0, side * (dPIR / 4 + 0.003 * k)]}
                 radius={0.002}
                 smoothness={3}
                 material={insulationMaterial}
-                castShadow
-                receiveShadow
+                openings={openings}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect('insulation');
@@ -421,6 +453,8 @@ export const PanelModel: React.FC<PanelModelProps> = ({
             ))}
           </>
         )}
+
+        <ScenarioLayerExtras variant={demoVariant} layer="insulation" material={isThermal ? pirShaderMat : insulationMaterial} layerCenterZ={basePIRZ} onSelect={onSelect} />
 
         {/* Swiss Callout for PIR */}
         {showCallouts && selectedId === 'insulation' && (
@@ -436,18 +470,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
       {/* 3. STRUCTURAL CONCRETE (120 mm) with Beveled Edges */}
       <group ref={structuralGroup} position={[0, 0, baseStructuralZ]}>
-        <RoundedBox
-          args={[W, H, dStructural]}
+        <LayerSlab
+          size={[W, H, dStructural]}
           radius={0.003}
           smoothness={4}
           material={structuralMaterial}
-          castShadow
-          receiveShadow
+          openings={openings}
           onClick={(e) => {
             e.stopPropagation();
             onSelect('structural');
           }}
         />
+        <ScenarioLayerExtras variant={demoVariant} layer="structural" material={structuralMaterial} layerCenterZ={baseStructuralZ} onSelect={onSelect} />
 
         {/* Swiss Callout for Structural */}
         {showCallouts && selectedId === 'structural' && (
@@ -526,22 +560,9 @@ export const PanelModel: React.FC<PanelModelProps> = ({
       />
       </>}
 
-      {/* 6. MINIMALIST HAIRLINE DIMENSION TICKS (When Assembled)
-          Плашка «Контур» живёт внизу по центру сцены: правый нижний угол занят
-          доками (контролы сцены), левый — пилюлей сравнения (xl), снизу на <1024 —
-          мобильный бар. Раньше плашка висела справа и на 1600 упиралась прямо
-          в «Сечение / 3D Обзор». */}
-      {showDimensions && k < 0.15 && !isThermal && !selectedId && (
-        <group position={[0, -1.42, 0]}>
-          <Html center distanceFactor={4.5} zIndexRange={[15, 0]} className="pointer-events-none select-none">
-            <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-[#71717A] tracking-wider whitespace-nowrap bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-black/5 shadow-sm">
-              <span className="text-[10px] uppercase text-[#A1A1AA]">Контур:</span>
-              <span className="font-semibold text-[#18181B]">390 мм</span>
-              <span className="text-[9px] text-[#A1A1AA]">(70 + 200 + 120)*</span>
-            </div>
-          </Html>
-        </group>
-      )}
+      {/* Dimensions are available in the rail and mode controls. Keep the model
+          itself free from floating labels so the silhouette and reinforcement stay
+          visible at every camera angle. */}
 
       {/* 6. THERMAL RESTRAINED INFOGRAPHIC */}
       {showFloatingHotspots && isThermal && !sectionFocusNarrow && (

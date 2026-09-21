@@ -1,6 +1,6 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Calculator, Layers3, SlidersHorizontal, X } from 'lucide-react';
-import { WidgetViewMode } from './data/panelConfig';
+import { PanelDemoVariant, WidgetViewMode } from './data/panelConfig';
 import { MODE_DEFAULTS, modeChangePatch, scrubPropFor } from './lib/viewMode';
 import { readWidgetParamsFromLocation } from './lib/widgetParams';
 import { emitWidgetEvent } from './lib/widgetEvents';
@@ -25,14 +25,41 @@ export const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<WidgetViewMode>(initialMode);
   const [scrubValue, setScrubValue] = useState(MODE_DEFAULTS[initialMode]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [showDimensions, setShowDimensions] = useState(true);
   const [show2DFallback, setShow2DFallback] = useState(false);
   const [isCalcOpen, setIsCalcOpen] = useState(initialParams.overlay === 'calc');
   const [isConsultOpen, setIsConsultOpen] = useState(initialParams.overlay === 'consult');
   const [isComparisonOpen, setIsComparisonOpen] = useState(initialParams.overlay === 'compare');
   const [isAssemblyOpen, setIsAssemblyOpen] = useState(initialParams.overlay === 'assembly');
+  const [demoVariant, setDemoVariant] = useState<PanelDemoVariant>('standard');
   const [mobileDrawer, setMobileDrawer] = useState<'none' | 'anatomy' | 'metrics'>('none');
   const overlayOpen = isCalcOpen || isConsultOpen || isComparisonOpen || isAssemblyOpen;
+  const drawerTriggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (mobileDrawer === 'none') {
+      drawerTriggerRef.current?.focus({ preventScroll: true });
+      drawerTriggerRef.current = null;
+      return;
+    }
+
+    drawerTriggerRef.current = document.activeElement as HTMLElement | null;
+    const handleDrawerKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileDrawer('none');
+      }
+    };
+
+    document.addEventListener('keydown', handleDrawerKeyDown);
+    const focusTimer = window.setTimeout(() => {
+      document.querySelector<HTMLElement>('#mobile-information-drawer button')?.focus({ preventScroll: true });
+    }, 30);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleDrawerKeyDown);
+    };
+  }, [mobileDrawer]);
 
   const handleModeChange = (mode: WidgetViewMode) => {
     const patch = modeChangePatch(mode);
@@ -52,8 +79,8 @@ export const App: React.FC = () => {
   return (
     <div className="relative flex h-screen h-[100dvh] w-screen flex-col overflow-hidden bg-[#D8D3C9] text-[#181714] antialiased">
       <a href="#main-content" className="abg-skip-link">К модели панели</a>
-      {!isEmbedded && <div inert={overlayOpen || undefined} aria-hidden={overlayOpen || undefined}><Header /></div>}
-      <div inert={overlayOpen || undefined} aria-hidden={overlayOpen || undefined} className="relative min-h-0 flex-1 overflow-hidden">
+      {!isEmbedded && <div inert={overlayOpen || mobileDrawer !== 'none' || undefined} aria-hidden={overlayOpen || mobileDrawer !== 'none' || undefined}><Header /></div>}
+      <div inert={overlayOpen || mobileDrawer !== 'none' || undefined} aria-hidden={overlayOpen || mobileDrawer !== 'none' || undefined} className="relative min-h-0 flex-1 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 z-10 hidden min-[1180px]:block">
           <div className="pointer-events-auto absolute inset-y-6 left-6 w-[276px] overflow-hidden bg-[#F3F0E9]/95 shadow-[0_28px_90px_rgba(38,34,27,0.12)] ring-1 ring-black/[0.08] backdrop-blur-xl">
             <LeftAnatomyRail selectedId={selectedElementId} onSelect={setSelectedElementId} currentMode={viewMode} />
@@ -64,12 +91,12 @@ export const App: React.FC = () => {
         </div>
         <main id="main-content" tabIndex={-1} className="relative h-full w-full overflow-hidden">
           <div hidden={show2DFallback} className="pointer-events-none absolute left-1/2 top-4 z-30 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 sm:top-6">
-            <CenterModeCapsule currentMode={viewMode} onModeChange={handleModeChange} scrubValue={scrubValue} onScrubChange={setScrubValue} showDimensions={showDimensions} onToggleDimensions={() => setShowDimensions((value) => !value)} />
+            <CenterModeCapsule currentMode={viewMode} onModeChange={handleModeChange} scrubValue={scrubValue} onScrubChange={setScrubValue} />
           </div>
           {show2DFallback ? (
             <div className="flex h-full w-full items-center justify-center px-3 pb-20 pt-3 min-[1180px]:px-[326px] min-[1180px]:py-6"><FallbackBlueprint onClose={() => setShow2DFallback(false)} onSelectLayer={(id) => { setSelectedElementId(id); setShow2DFallback(false); }} /></div>
           ) : (
-            <Suspense fallback={<PanelSceneSkeleton />}><PanelScene mode={viewMode} scrubProgress={scrubPropFor(viewMode, scrubValue)} selectedId={selectedElementId} onSelect={setSelectedElementId} showDimensions={showDimensions} /></Suspense>
+            <Suspense fallback={<PanelSceneSkeleton />}><PanelScene mode={viewMode} scrubProgress={scrubPropFor(viewMode, scrubValue)} selectedId={selectedElementId} onSelect={setSelectedElementId} demoVariant={demoVariant} onDemoVariantChange={setDemoVariant} /></Suspense>
           )}
           <LayerDetailCard selectedId={selectedElementId} onClose={() => setSelectedElementId(null)} />
           <nav aria-label="Разделы модели" className="absolute inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-3 min-[1180px]:hidden">
@@ -83,9 +110,9 @@ export const App: React.FC = () => {
       </div>
       {mobileDrawer !== 'none' && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end bg-[#181714]/35 backdrop-blur-sm min-[1180px]:hidden" onClick={() => setMobileDrawer('none')}>
-          <div id="mobile-information-drawer" role="dialog" aria-modal="true" aria-label={mobileDrawer === 'anatomy' ? 'Слои панели' : 'Параметры проекта'} onClick={(event) => event.stopPropagation()} className={`max-h-[82vh] overflow-hidden px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-28px_80px_rgba(28,25,21,0.2)] ${mobileDrawer === 'anatomy' ? 'bg-[#F3F0E9] text-[#181714]' : 'bg-[#1B1A17] text-[#F3F0E9]'}`}>
+          <div id="mobile-information-drawer" role="dialog" aria-modal="true" aria-label={mobileDrawer === 'anatomy' ? 'Слои панели' : 'Параметры проекта'} onClick={(event) => event.stopPropagation()} className={`max-h-[68vh] overflow-hidden px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-28px_80px_rgba(28,25,21,0.2)] ${mobileDrawer === 'anatomy' ? 'bg-[#F3F0E9] text-[#181714]' : 'bg-[#1B1A17] text-[#F3F0E9]'}`}>
             <div className="mb-2 flex justify-end"><button onClick={() => setMobileDrawer('none')} aria-label="Закрыть панель" className="flex h-11 w-11 items-center justify-center text-current opacity-60 transition-[opacity,transform] hover:opacity-100 active:scale-[0.96]"><X className="h-5 w-5" /></button></div>
-            <div className="max-h-[calc(82vh-4rem)] overflow-y-auto">
+            <div className="max-h-[calc(68vh-4rem)] overflow-y-auto">
               {mobileDrawer === 'anatomy' ? <LeftAnatomyRail selectedId={selectedElementId} onSelect={(id) => { setSelectedElementId(id); setMobileDrawer('none'); }} currentMode={viewMode} /> : <RightMetricsRail currentMode={viewMode} onModeChange={handleModeChange} onOpenCalculator={() => { setMobileDrawer('none'); setIsCalcOpen(true); }} onOpenConsult={() => { setMobileDrawer('none'); setIsConsultOpen(true); }} onOpenComparison={() => { setMobileDrawer('none'); setIsComparisonOpen(true); }} onOpenAssembly={() => { setMobileDrawer('none'); setIsAssemblyOpen(true); }} onToggle2D={() => { setMobileDrawer('none'); setShow2DFallback((value) => !value); }} is2DActive={show2DFallback} selectedId={selectedElementId} />}
             </div>
           </div>

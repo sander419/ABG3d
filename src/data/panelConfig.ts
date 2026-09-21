@@ -1,4 +1,5 @@
 export type WidgetViewMode = 'assembled' | 'exploded' | 'structure' | 'thermal';
+export type PanelDemoVariant = 'standard' | 'corner' | 'windows' | 'services';
 
 export interface LayerState {
   id: 'facade' | 'insulation' | 'structural' | 'anchors';

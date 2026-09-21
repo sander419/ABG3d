@@ -3,30 +3,24 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, ContactShadows, Environment, Html, AdaptiveDpr, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { easing } from 'maath';
-import { WidgetViewMode } from '../../data/panelConfig';
+import { PanelDemoVariant, WidgetViewMode } from '../../data/panelConfig';
 import { PanelModel } from './PanelModel';
 import { PanelSceneSkeleton } from './PanelSceneSkeleton';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
-import {
-  preloadProceduralTextures,
-  useProgressiveProceduralTextures,
-} from '../../utils/textureGenerator';
+import { useProgressiveProceduralTextures } from '../../utils/textureGenerator';
 import { RotateCw, Move3d, Hand, Scissors } from 'lucide-react';
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib';
 import { CrossSectionPlaneHelper, ClippingAxis } from './CrossSectionPlaneHelper';
 import { CrossSectionControl } from './CrossSectionControl';
-
-// Eagerly preload procedural bump, roughness, and noise texture maps
-// into Drei's TextureLoader cache to guarantee zero-jank transitions
-preloadProceduralTextures();
 
 interface PanelSceneProps {
   mode: WidgetViewMode;
   scrubProgress?: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  showDimensions: boolean;
   scrollStoryProgress?: number;
+  demoVariant?: PanelDemoVariant;
+  onDemoVariantChange?: (variant: PanelDemoVariant) => void;
 }
 
 // Ensures renderer local clipping is always active across all R3F render loops
@@ -133,7 +127,8 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   scrubProgress,
   selectedId,
   onSelect,
-  showDimensions,
+  demoVariant = 'standard',
+  onDemoVariantChange,
 }) => {
   const controlsRef = useRef<OrbitControlsType | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -377,8 +372,8 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
             scrubProgress={scrubProgress}
             selectedId={selectedId}
             onSelect={onSelect}
-            showDimensions={showDimensions}
             clippingPlanes={clippingPlanesArray}
+            demoVariant={demoVariant}
           />
 
           {/* 3D Visual Slice Plane Guide Blade */}
@@ -422,9 +417,9 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
       )}
 
       {/* Floating touch interaction mode & camera reset controls.
-          Raised above the mobile action bar (<lg) so the stage controls never sit
-          on top of the bar's buttons; desktop keeps the bottom-right corner. */}
-      <div id="stage-controls-dock" className="absolute bottom-[4.5rem] lg:bottom-4 right-3 sm:right-4 z-20 flex items-center gap-2">
+          Raised above the mobile action bar (<lg); on larger stages the group is
+          centered below the model so it never collides with either information rail. */}
+      <div id="stage-controls-dock" className="absolute bottom-[4.5rem] left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 lg:bottom-4">
         {/* Cross-Section Tool Trigger Button */}
         <button
           id="cross-section-trigger-btn"
@@ -484,6 +479,23 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         >
           <RotateCw className="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      <div className="absolute left-1/2 top-16 z-20 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto border border-black/10 bg-[#F3F0E9]/90 p-1 shadow-[0_12px_30px_rgba(38,34,27,0.1)] backdrop-blur-md sm:top-20">
+        <span className="hidden px-2 text-[9px] uppercase tracking-[0.16em] text-[#846846] md:block">Узлы</span>
+        {([
+          ['standard', 'Панель'],
+          ['corner', 'Угол'],
+          ['windows', 'Окна'],
+          ['services', 'Коммуникации'],
+        ] as const).map(([variant, label]) => (
+          <button
+            key={variant}
+            type="button"
+            onClick={() => onDemoVariantChange?.(variant)}
+            className={`whitespace-nowrap px-2.5 py-1.5 text-[10px] transition-[background-color,color,transform] active:scale-[0.96] ${demoVariant === variant ? 'bg-[#1D1C19] text-[#F3F0E9]' : 'text-[#665F55] hover:bg-black/[0.05] hover:text-[#1D1C19]'}`}
+          >{label}</button>
+        ))}
       </div>
 
       {/* Renderer diagnostics remain internal: technical status never competes with the product. */}

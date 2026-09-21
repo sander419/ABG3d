@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Flame } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import { WidgetViewMode } from '../../data/panelConfig';
 
 interface CenterModeCapsuleProps {
@@ -7,8 +7,6 @@ interface CenterModeCapsuleProps {
   onModeChange: (mode: WidgetViewMode) => void;
   scrubValue: number;
   onScrubChange: (value: number) => void;
-  showDimensions: boolean;
-  onToggleDimensions: () => void;
 }
 
 const modes: { id: WidgetViewMode; label: string }[] = [
@@ -23,8 +21,6 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
   onModeChange,
   scrubValue,
   onScrubChange,
-  showDimensions,
-  onToggleDimensions,
 }) => (
   <div className="pointer-events-none flex max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 select-none">
     <div role="group" aria-label="Режим отображения панели" className="pointer-events-auto flex items-center bg-[#F4F1EA]/95 p-1 shadow-[0_18px_48px_rgba(31,28,22,0.14)] ring-1 ring-black/10 backdrop-blur-xl">
@@ -43,16 +39,6 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
           </button>
         );
       })}
-      <span className="mx-1 hidden h-4 w-px bg-black/10 sm:block" />
-      <button
-        onClick={onToggleDimensions}
-        aria-pressed={showDimensions}
-        title="Показать размеры панели"
-        className={`hidden min-h-10 items-center gap-1.5 px-3 text-[11px] transition-colors sm:flex ${showDimensions ? 'text-[#846846]' : 'text-[#777168] hover:text-[#1D1C19]'}`}
-      >
-        <Eye className="h-3.5 w-3.5" />
-        Размеры
-      </button>
     </div>
 
     {currentMode === 'thermal' && (

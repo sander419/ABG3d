@@ -5,6 +5,8 @@ const structuralThickness = 0.120;
 const totalThickness = facadeThickness + insulationThickness + structuralThickness;
 
 export const PANEL_GEOMETRY = {
+  width: 2.0,
+  height: 2.4,
   totalThickness,
   facade: { thickness: facadeThickness, centerZ: totalThickness / 2 - facadeThickness / 2 },
   insulation: { thickness: insulationThickness, centerZ: -totalThickness / 2 + structuralThickness + insulationThickness / 2 },
