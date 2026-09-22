@@ -1,0 +1,19 @@
+/* The 3D widget locks the page to one screen; the calculator is a normal scrolling page. */
+html.abg-calc-page,
+html.abg-calc-page body,
+html.abg-calc-page #root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  background-color: #ede9e1;
+}
+
+/* Number inputs: no spinner arrows, the values are typed. */
+html.abg-calc-page input[type='number']::-webkit-inner-spin-button,
+html.abg-calc-page input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+html.abg-calc-page input[type='number'] {
+  -moz-appearance: textfield;
+}

@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import {defineConfig} from 'vite';
+import {resolve} from 'node:path';
 
 export default defineConfig(() => {
   return {
@@ -26,6 +27,11 @@ export default defineConfig(() => {
       // chunks. React gets its own group: left alone, the bundler parks it inside
       // the 3D chunk and the whole 1.2 MB is preloaded on first paint.
       rolldownOptions: {
+        // Two pages: the 3D widget and the house price / mortgage calculator.
+        input: {
+          main: resolve(import.meta.dirname, 'index.html'),
+          calculator: resolve(import.meta.dirname, 'calculator.html'),
+        },
         output: {
           codeSplitting: {
             groups: [
