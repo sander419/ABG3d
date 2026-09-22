@@ -52,6 +52,16 @@ describe('corner layout', () => {
     expect(layout.layers.structural.x - structural.thickness / 2).toBeCloseTo(width / 2 + CORNER.jointWidth, 8);
     expect(layout.centerZ + layout.length / 2).toBeCloseTo(totalThickness / 2, 8);
   });
+  // Regression: the corner's insulation wall must render with a RoundedBox whose
+  // *third* args slot (its own local z) equals the insulation thickness, because
+  // that is the axis PIRShaderMaterial's thermal gradient reads (vObjectPosition.z,
+  // clamped over 0..0.2 m). PanelScenarioGeometry achieves this by keeping thickness
+  // as the mesh's local z and turning the whole wall with a wrapping group, rather
+  // than putting thickness on local x — swap that back and the gradient would run
+  // along the wall's 1.35 m length instead of across its insulation core.
+  test('insulation wall thickness matches the thermal shader\'s hard-coded 0.2 m span', () => {
+    expect(layout.layers.insulation.thickness).toBeCloseTo(0.2, 8);
+  });
 });
 
 describe('service layout', () => {

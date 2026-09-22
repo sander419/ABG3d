@@ -66,16 +66,22 @@ export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ varian
   if (variant === 'corner') {
     const layout = cornerLayout();
     const { x, thickness } = layout.layers[layer];
-    return <RoundedBox
-      args={[thickness, height, layout.length]}
-      position={[x, 0, layout.centerZ - layerCenterZ]}
-      radius={0.003}
-      smoothness={4}
-      material={material}
-      castShadow
-      receiveShadow
-      onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(layer); } : undefined}
-    />;
+    // The mesh keeps thickness on its own local z (args' 3rd slot), exactly like the
+    // straight panel, and only the wrapping group turns it 90° so the wall runs into
+    // the scene. This matters beyond looks: the thermal shader reads vObjectPosition.z
+    // as the 0–200 mm insulation core, in the mesh's own local space, so if thickness
+    // isn't on local z there the temperature gradient reads along the wrong axis.
+    return <group position={[x, 0, layout.centerZ - layerCenterZ]} rotation={[0, Math.PI / 2, 0]}>
+      <RoundedBox
+        args={[layout.length, height, thickness]}
+        radius={0.003}
+        smoothness={4}
+        material={material}
+        castShadow
+        receiveShadow
+        onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(layer); } : undefined}
+      />
+    </group>;
   }
 
   if (variant === 'services' && layer === 'structural') {
