@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PANEL_GEOMETRY } from '../src/lib/panelGeometry';
-import { CORNER, SERVICE_BOX, SERVICE_SLEEVES, WINDOW_OPENINGS, cornerLayout, validateOpenings } from '../src/lib/panelScenarios';
+import { CORNER, CORNER_PVL, CORNER_STAGES, SERVICE_BOX, SERVICE_SLEEVES, WINDOW_OPENINGS, cornerLayout, validateOpenings } from '../src/lib/panelScenarios';
 import { buildPerforatedGeometry } from '../src/components/Panel3D/PerforatedSlab';
 
 const { width, height, totalThickness, structural, insulation, facade } = PANEL_GEOMETRY;
@@ -61,6 +61,25 @@ describe('corner layout', () => {
   // along the wall's 1.35 m length instead of across its insulation core.
   test('insulation wall thickness matches the thermal shader\'s hard-coded 0.2 m span', () => {
     expect(layout.layers.insulation.thickness).toBeCloseTo(0.2, 8);
+  });
+});
+
+describe('corner PVL joint', () => {
+  const { joint } = cornerLayout();
+  const { protrusion, loopHalfWidth } = CORNER_PVL;
+  test('loops from both panels reach past the bar, so the bar passes through both', () => {
+    // A's loop tip lies beyond the bar axis, B's loop tip lies before it.
+    expect(joint.startX + protrusion).toBeGreaterThan(joint.x + 0.011);
+    expect(joint.endX - protrusion).toBeLessThan(joint.x - 0.011);
+  });
+  test('loop eye is wider than the bar', () => {
+    expect(loopHalfWidth * 2).toBeGreaterThan(0.022 + 0.016);
+  });
+  test('loops and grout sit in the structural wythe', () => {
+    expect(joint.structuralZ).toBeCloseTo(structural.centerZ, 8);
+  });
+  test('the demonstration has four ordered steps', () => {
+    expect(CORNER_STAGES.map((s) => s.stage)).toEqual([1, 2, 3, 4]);
   });
 });
 

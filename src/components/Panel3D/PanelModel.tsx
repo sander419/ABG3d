@@ -16,7 +16,7 @@ import { createPIRShaderMaterial } from './PIRShaderMaterial';
 import { PANEL_GEOMETRY } from '../../lib/panelGeometry';
 import { CornerJoint, ScenarioLayerExtras, syncScenarioClipping } from './PanelScenarioGeometry';
 import { PerforatedSlab } from './PerforatedSlab';
-import { Opening, WINDOW_OPENINGS } from '../../lib/panelScenarios';
+import { CORNER_PVL, CornerStage, Opening, WINDOW_OPENINGS } from '../../lib/panelScenarios';
 
 interface PanelModelProps {
   mode: WidgetViewMode;
@@ -25,6 +25,8 @@ interface PanelModelProps {
   onSelect: (id: string) => void;
   clippingPlanes?: THREE.Plane[];
   demoVariant?: PanelDemoVariant;
+  /** Step of the corner-joint demonstration (only used for the "Угол" variant). */
+  cornerStage?: CornerStage;
 }
 
 interface LayerSlabProps {
@@ -51,6 +53,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   onSelect,
   clippingPlanes,
   demoVariant = 'standard',
+  cornerStage = 4,
 }) => {
   // Progressive loading strategy for procedural materials:
   // Starts with low-resolution blurred proxy (32px), background calculates full 512px maps.
@@ -77,6 +80,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const W = PANEL_GEOMETRY.width;
   const H = PANEL_GEOMETRY.height;
   const openings = demoVariant === 'windows' ? WINDOW_OPENINGS : undefined;
+  const cornerSeparation = demoVariant === 'corner' && cornerStage === 1 ? CORNER_PVL.separation : 0;
   const dFacade = PANEL_GEOMETRY.facade.thickness;
   const dPIR = PANEL_GEOMETRY.insulation.thickness;
   const dStructural = PANEL_GEOMETRY.structural.thickness;
@@ -406,7 +410,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
             onSelect('facade');
           }}
         />
-        <ScenarioLayerExtras variant={demoVariant} layer="facade" material={facadeMaterial} layerCenterZ={baseFacadeZ} onSelect={onSelect} />
+        <ScenarioLayerExtras variant={demoVariant} layer="facade" material={facadeMaterial} layerCenterZ={baseFacadeZ} onSelect={onSelect} cornerSeparation={cornerSeparation} />
 
         {/* Swiss Callout for Facade */}
         {showCallouts && selectedId === 'facade' && (
@@ -420,7 +424,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         )}
       </group>
 
-      {demoVariant === 'corner' && <CornerJoint offsetZ={targetStructuralZ - baseStructuralZ} />}
+      {demoVariant === 'corner' && <CornerJoint offsetZ={targetStructuralZ - baseStructuralZ} stage={cornerStage} />}
 
       {/* 2. 200 mm insulation contour. ABG describes it as two 100 mm layers;
           the small physical split is visible in the exploded view. Thermal mode
@@ -458,7 +462,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
           </>
         )}
 
-        <ScenarioLayerExtras variant={demoVariant} layer="insulation" material={isThermal ? pirShaderMat : insulationMaterial} layerCenterZ={basePIRZ} onSelect={onSelect} />
+        <ScenarioLayerExtras variant={demoVariant} layer="insulation" material={isThermal ? pirShaderMat : insulationMaterial} layerCenterZ={basePIRZ} onSelect={onSelect} cornerSeparation={cornerSeparation} />
 
         {/* Swiss Callout for PIR */}
         {showCallouts && selectedId === 'insulation' && (
@@ -485,7 +489,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
             onSelect('structural');
           }}
         />
-        <ScenarioLayerExtras variant={demoVariant} layer="structural" material={structuralMaterial} layerCenterZ={baseStructuralZ} onSelect={onSelect} />
+        <ScenarioLayerExtras variant={demoVariant} layer="structural" material={structuralMaterial} layerCenterZ={baseStructuralZ} onSelect={onSelect} cornerSeparation={cornerSeparation} />
 
         {/* Swiss Callout for Structural */}
         {showCallouts && selectedId === 'structural' && (

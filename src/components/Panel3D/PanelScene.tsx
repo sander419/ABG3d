@@ -12,6 +12,7 @@ import { RotateCw, Move3d, Hand, Scissors } from 'lucide-react';
 import type { OrbitControls as OrbitControlsType } from 'three-stdlib';
 import { CrossSectionPlaneHelper, ClippingAxis } from './CrossSectionPlaneHelper';
 import { CrossSectionControl } from './CrossSectionControl';
+import { CORNER_STAGES, CornerStage } from '../../lib/panelScenarios';
 
 interface PanelSceneProps {
   mode: WidgetViewMode;
@@ -37,9 +38,18 @@ interface CameraRigProps {
   isInteracting: boolean;
   resetKey?: number;
   mode: WidgetViewMode;
+  /** "Угол": frame the joint instead of the panel centre. */
+  focusCorner?: boolean;
+  controlsRef?: React.MutableRefObject<OrbitControlsType | null>;
 }
 
-function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
+// The PVL joint faces the room side: from the usual front 3/4 view panel B hides it
+// completely. For the corner demo the camera moves behind and above the joint.
+const DEFAULT_LOOK_AT = new THREE.Vector3(0, 0.05, 0);
+const CORNER_LOOK_AT = new THREE.Vector3(1.04, 0.5, -0.25);
+const CORNER_OFFSET = new THREE.Vector3(-1.2, 1.95, -2.0);
+
+function CameraRig({ isInteracting, resetKey = 0, mode, focusCorner = false, controlsRef }: CameraRigProps) {
   const { size } = useThree();
   const isPortrait = size.width < size.height;
   const aspect = size.width / Math.max(1, size.height);
@@ -61,12 +71,12 @@ function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
   const hasCustomOrbitRef = useRef(false);
   const customBasePosRef = useRef(new THREE.Vector3());
   const prevInteractingRef = useRef(isInteracting);
-  const targetLookAtRef = useMemo(() => new THREE.Vector3(0, 0.05, 0), []);
+  const targetLookAtRef = useMemo(() => DEFAULT_LOOK_AT.clone(), []);
 
-  // Reset custom orbit when user triggers camera reset
+  // Reset custom orbit when user triggers camera reset or switches to/from the corner view
   useEffect(() => {
     hasCustomOrbitRef.current = false;
-  }, [resetKey]);
+  }, [resetKey, focusCorner]);
 
   useFrame((state, delta) => {
     // Detect when user finishes interacting with OrbitControls
@@ -79,6 +89,11 @@ function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
 
     // When user is actively orbiting/pinching, yield completely to OrbitControls for 100% responsive control
     if (isInteracting) return;
+
+    // Orbit and rig must share one pivot, otherwise OrbitControls snaps the view back.
+    const lookAt = focusCorner ? CORNER_LOOK_AT : DEFAULT_LOOK_AT;
+    easing.damp3(targetLookAtRef, [lookAt.x, lookAt.y, lookAt.z], 0.6, delta);
+    if (controlsRef?.current) controlsRef.current.target.copy(targetLookAtRef);
 
     // Organic, multi-harmonic low-frequency camera breathing:
     // Uses prime-ratio harmonics to create an authentic architectural exhibition feel:
@@ -98,9 +113,12 @@ function CameraRig({ isInteracting, resetKey = 0, mode }: CameraRigProps) {
 
     if (!hasCustomOrbitRef.current) {
       // Default architectural hero perspective: anchored slab with gentle organic breathing
-      const targetX = baseX + pointerX + breathX;
-      const targetY = baseY + pointerY + breathY;
-      const targetZ = baseZ + breathZ;
+      const heroX = focusCorner ? CORNER_LOOK_AT.x + CORNER_OFFSET.x * scale : baseX;
+      const heroY = focusCorner ? CORNER_LOOK_AT.y + CORNER_OFFSET.y * scale : baseY;
+      const heroZ = focusCorner ? CORNER_LOOK_AT.z + CORNER_OFFSET.z * scale : baseZ;
+      const targetX = heroX + pointerX + breathX;
+      const targetY = heroY + pointerY + breathY;
+      const targetZ = heroZ + breathZ;
 
       easing.damp3(state.camera.position, [targetX, targetY, targetZ], 0.6, delta);
     } else {
@@ -134,6 +152,28 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   const [isInteracting, setIsInteracting] = useState(false);
   // Specific 'Interact' toggle: when false (default), 1-finger touches allow page scrolling, 2 fingers rotate
   const [isInteractActive, setIsInteractActive] = useState(false);
+
+  // Corner joint demonstration: switching to "Угол" plays the four steps once
+  // (loops → docking → bar → grout); the stepper lets the presenter replay any step.
+  const [cornerStage, setCornerStage] = useState<CornerStage>(4);
+  const [cornerPlaying, setCornerPlaying] = useState(false);
+  const playCorner = () => {
+    setCornerStage(1);
+    setCornerPlaying(true);
+  };
+  useEffect(() => {
+    if (demoVariant !== 'corner') { setCornerPlaying(false); return; }
+    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { setCornerStage(4); return; }
+    playCorner();
+  }, [demoVariant]);
+  useEffect(() => {
+    if (!cornerPlaying) return;
+    if (cornerStage >= 4) { setCornerPlaying(false); return; }
+    const holdMs: Record<CornerStage, number> = { 1: 2200, 2: 2200, 3: 2600, 4: 0 };
+    const timer = window.setTimeout(() => setCornerStage((stage) => Math.min(4, stage + 1) as CornerStage), holdMs[cornerStage]);
+    return () => window.clearTimeout(timer);
+  }, [cornerPlaying, cornerStage]);
 
   // Textures are prepared in the background; progress is deliberately not exposed to clients.
   useProgressiveProceduralTextures();
@@ -265,7 +305,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           far={40}
         />
 
-        <CameraRig isInteracting={isInteracting} resetKey={resetKey} mode={mode} />
+        <CameraRig isInteracting={isInteracting} resetKey={resetKey} mode={mode} focusCorner={demoVariant === 'corner'} controlsRef={controlsRef} />
 
         <OrbitControls
           ref={controlsRef}
@@ -274,7 +314,6 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           minDistance={1.8}
           maxDistance={7.5}
           maxPolarAngle={Math.PI / 2 + 0.05}
-          target={[0, 0.05, 0]}
           enablePan={false}
           screenSpacePanning={false}
           enableRotate={true}
@@ -374,6 +413,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
             onSelect={onSelect}
             clippingPlanes={clippingPlanesArray}
             demoVariant={demoVariant}
+            cornerStage={cornerStage}
           />
 
           {/* 3D Visual Slice Plane Guide Blade */}
@@ -446,6 +486,38 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           >{label}</button>
         ))}
       </div>
+
+      {demoVariant === 'corner' && (() => {
+        const current = CORNER_STAGES.find((item) => item.stage === cornerStage) ?? CORNER_STAGES[3];
+        return (
+          <div className="absolute bottom-[7.5rem] left-1/2 z-20 w-[min(420px,calc(100vw-1rem))] -translate-x-1/2 border border-black/10 bg-[#F3F0E9]/95 p-3 shadow-[0_12px_30px_rgba(38,34,27,0.12)] backdrop-blur-md lg:bottom-16">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-[#846846]">Как соединяются панели · Peikko PVL</p>
+              <button type="button" onClick={playCorner} className="text-[10px] text-[#665F55] underline-offset-2 hover:text-[#1D1C19] hover:underline">{cornerPlaying ? 'Идёт показ…' : 'Показать заново'}</button>
+            </div>
+            <ol role="group" aria-label="Шаги соединения панелей" className="mt-2 grid grid-cols-4 gap-1">
+              {CORNER_STAGES.map((item) => {
+                const active = item.stage === cornerStage;
+                const done = item.stage < cornerStage;
+                return (
+                  <li key={item.stage}>
+                    <button
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => { setCornerPlaying(false); setCornerStage(item.stage); }}
+                      className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-[10px] transition-colors ${active ? 'bg-[#1D1C19] text-[#F3F0E9]' : done ? 'bg-black/[0.06] text-[#1D1C19]' : 'text-[#8A8378] hover:bg-black/[0.05] hover:text-[#1D1C19]'}`}
+                    >
+                      <span className="font-mono text-[9px] opacity-70">{item.stage}</span>
+                      <span>{item.title}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+            <p aria-live="polite" className="mt-2 min-h-[2.5em] text-[11px] leading-snug text-[#4A463F]">{current.text}</p>
+          </div>
+        );
+      })()}
 
       {/* Floating touch interaction mode & camera reset controls.
           Raised above the mobile action bar (<lg); on larger stages the group is

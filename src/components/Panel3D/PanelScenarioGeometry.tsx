@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
+import { easing } from 'maath';
 import { PanelDemoVariant } from '../../data/panelConfig';
 import { PANEL_GEOMETRY } from '../../lib/panelGeometry';
-import { CORNER, LayerId, Opening, SERVICE_BOX, SERVICE_SLEEVES, WINDOW_OPENINGS, cornerLayout } from '../../lib/panelScenarios';
+import { CORNER_PVL, CornerStage, LayerId, Opening, SERVICE_BOX, SERVICE_SLEEVES, WINDOW_OPENINGS, cornerLayout } from '../../lib/panelScenarios';
 
 // side: DoubleSide on every scenario material — the cross-section tool clips these
 // meshes too (see syncScenarioClipping below), and a clipped FrontSide mesh shows a
@@ -15,10 +17,19 @@ const serviceMaterials = {
   blue: new THREE.MeshStandardMaterial({ color: '#4E7898', roughness: 0.38, metalness: 0.15, side: THREE.DoubleSide }),
   box: new THREE.MeshStandardMaterial({ color: '#8E816D', roughness: 0.58, metalness: 0.35, side: THREE.DoubleSide }),
 };
-const jointGrout = new THREE.MeshStandardMaterial({ color: '#A59D8F', roughness: 0.96, side: THREE.DoubleSide });
-const pvlBoxMaterial = new THREE.MeshStandardMaterial({ color: '#8E816D', roughness: 0.58, metalness: 0.35, side: THREE.DoubleSide });
+// Fresh grout reads darker and warmer than the cured precast faces around it.
+const jointGrout = new THREE.MeshStandardMaterial({ color: '#8F877A', roughness: 0.98, side: THREE.DoubleSide });
+// Loops carry a faint glow so they stay readable inside the dark joint.
+const loopMaterial = new THREE.MeshStandardMaterial({ color: '#E4E8EA', emissive: '#5E6A70', emissiveIntensity: 0.35, roughness: 0.22, metalness: 0.85, side: THREE.DoubleSide });
+const rodMaterial = new THREE.MeshStandardMaterial({ color: '#B8782E', roughness: 0.42, metalness: 0.7, side: THREE.DoubleSide });
+const pocketMaterial = new THREE.MeshStandardMaterial({ color: '#2B2C2A', roughness: 0.7, metalness: 0.3, side: THREE.DoubleSide });
+const jointInsulation = new THREE.MeshStandardMaterial({ color: '#C9C2B2', roughness: 0.96, side: THREE.DoubleSide });
+const sealantMaterial = new THREE.MeshStandardMaterial({ color: '#3A3B39', roughness: 0.5, side: THREE.DoubleSide });
 
-const scenarioMaterials: THREE.Material[] = [frameMaterial, glassMaterial, ...Object.values(serviceMaterials), jointGrout, pvlBoxMaterial];
+const scenarioMaterials: THREE.Material[] = [
+  frameMaterial, glassMaterial, ...Object.values(serviceMaterials),
+  jointGrout, loopMaterial, rodMaterial, pocketMaterial, jointInsulation, sealantMaterial,
+];
 
 /** Keeps the module-level demo materials inside the cross-section tool's clipping. */
 export function syncScenarioClipping(planes: THREE.Plane[] | null) {
@@ -49,13 +60,15 @@ interface ScenarioLayerExtrasProps {
   material: THREE.Material;
   layerCenterZ: number;
   onSelect?: (id: LayerId) => void;
+  /** Corner step 1: panel B hangs this far out from the joint (see CornerJoint). */
+  cornerSeparation?: number;
 }
 
 /**
  * Parts that belong to one layer. They render inside that layer's group, so they
  * follow it through the exploded/structure/thermal offsets.
  */
-export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ variant, layer, material, layerCenterZ, onSelect }) => {
+export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ variant, layer, material, layerCenterZ, onSelect, cornerSeparation = 0 }) => {
   const { height, structural } = PANEL_GEOMETRY;
 
   if (variant === 'windows' && layer === 'facade') {
@@ -77,17 +90,19 @@ export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ varian
     // the scene. This matters beyond looks: the thermal shader reads vObjectPosition.z
     // as the 0–200 mm insulation core, in the mesh's own local space, so if thickness
     // isn't on local z there the temperature gradient reads along the wrong axis.
-    return <group position={[x, 0, layout.centerZ - layerCenterZ]} rotation={[0, Math.PI / 2, 0]}>
-      <RoundedBox
-        args={[layout.length, height, thickness]}
-        radius={0.003}
-        smoothness={4}
-        material={material}
-        castShadow
-        receiveShadow
-        onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(layer); } : undefined}
-      />
-    </group>;
+    return <EasedGroupX targetX={cornerSeparation}>
+      <group position={[x, 0, layout.centerZ - layerCenterZ]} rotation={[0, Math.PI / 2, 0]}>
+        <RoundedBox
+          args={[layout.length, height, thickness]}
+          radius={0.003}
+          smoothness={4}
+          material={material}
+          castShadow
+          receiveShadow
+          onClick={onSelect ? (event) => { event.stopPropagation(); onSelect(layer); } : undefined}
+        />
+      </group>
+    </EasedGroupX>;
   }
 
   if (variant === 'services' && layer === 'structural') {
@@ -110,21 +125,102 @@ export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ varian
   return null;
 };
 
-interface CornerJointProps {
-  /** Current structural-layer explosion delta (targetStructuralZ - baseStructuralZ).
-   * The grouted joint and its PVL loops are cast at the structural wythe's depth, so
-   * they track that layer's Z instead of staying frozen at the assembled position —
-   * otherwise the joint visibly detaches from the wing walls in Разобран/Арматура/Тепло. */
-  offsetZ?: number;
+/** Horizontal U-shaped wire loop in the XZ plane, protruding along +x from x = 0. */
+function useLoopGeometry() {
+  const geometry = useMemo(() => {
+    const { protrusion: L, loopHalfWidth: w } = CORNER_PVL;
+    const anchor = -0.035; // legs continue into the panel, as a cast-in loop does
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(anchor, 0, -w),
+      new THREE.Vector3(L - w, 0, -w),
+      new THREE.Vector3(L - w * 0.3, 0, -w * 0.72),
+      new THREE.Vector3(L, 0, 0),
+      new THREE.Vector3(L - w * 0.3, 0, w * 0.72),
+      new THREE.Vector3(L - w, 0, w),
+      new THREE.Vector3(anchor, 0, w),
+    ]);
+    return new THREE.TubeGeometry(curve, 48, 0.008, 10, false);
+  }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return geometry;
 }
 
-/** Grouted vertical joint between the two corner panels, with the continuous bar and PVL boxes. */
-export const CornerJoint: React.FC<CornerJointProps> = ({ offsetZ = 0 }) => {
-  const { height } = PANEL_GEOMETRY;
+/** A group whose x eases toward `targetX` — used to lift panel B in and out. */
+export const EasedGroupX: React.FC<{ baseX?: number; targetX: number; children: React.ReactNode }> = ({ baseX = 0, targetX, children }) => {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (ref.current) easing.damp(ref.current.position, 'x', baseX + targetX, 0.55, delta);
+  });
+  return <group ref={ref} position={[baseX + targetX, 0, 0]}>{children}</group>;
+};
+
+interface CornerJointProps {
+  /** Current structural-layer explosion delta (targetStructuralZ - baseStructuralZ). */
+  offsetZ?: number;
+  stage: CornerStage;
+}
+
+const ROD_PARKED_Y = 3.0;
+
+/**
+ * The PVL corner joint as a four-step demonstration: loops in both panel edges,
+ * panel B set against A so the loops overlap, the vertical bar dropped through the
+ * overlap, then the joint grouted. Steps are driven from PanelScene.
+ */
+export const CornerJoint: React.FC<CornerJointProps> = ({ offsetZ = 0, stage }) => {
+  const { height, structural, insulation } = PANEL_GEOMETRY;
   const { joint } = cornerLayout();
-  return <group position={[joint.x, 0, offsetZ]}>
-    <mesh material={jointGrout} castShadow receiveShadow><boxGeometry args={[joint.width, height, joint.depth]} /></mesh>
-    <mesh material={frameMaterial} castShadow><cylinderGeometry args={[0.012, 0.012, height + 0.1, 12]} /></mesh>
-    {[-0.68, 0, 0.68].map((y) => <mesh key={y} position={[0, y, joint.depth / 2 + 0.001]} material={pvlBoxMaterial}><boxGeometry args={[CORNER.jointWidth * 0.8, 0.12, 0.012]} /></mesh>)}
+  const loop = useLoopGeometry();
+  const rodRef = useRef<THREE.Mesh>(null);
+  const groutRef = useRef<THREE.Group>(null);
+  const rodLength = height + 0.16;
+
+  useFrame((_, delta) => {
+    if (rodRef.current) {
+      easing.damp(rodRef.current.position, 'y', stage >= 3 ? 0.04 : ROD_PARKED_Y, 0.6, delta);
+      rodRef.current.visible = stage >= 3 || rodRef.current.position.y < ROD_PARKED_Y - 0.05;
+    }
+    if (groutRef.current) {
+      easing.damp(groutRef.current.scale, 'y', stage >= 4 ? 1 : 0.0001, 0.85, delta);
+      groutRef.current.visible = groutRef.current.scale.y > 0.002;
+    }
+  });
+
+  return <group position={[0, 0, offsetZ]}>
+    {/* Panel A: recessed loop pockets in the end face, loops pointing into the joint. */}
+    {CORNER_PVL.loopYs.map((y) => <group key={`a-${y}`} position={[joint.startX, y, joint.structuralZ]}>
+      <mesh position={[-0.012, 0, 0]} material={pocketMaterial}><boxGeometry args={[0.026, 0.12, 0.085]} /></mesh>
+      <mesh geometry={loop} material={loopMaterial} castShadow />
+    </group>)}
+
+    {/* Panel B's loops travel with panel B, and sit slightly higher so the two loops stack. */}
+    <EasedGroupX targetX={stage === 1 ? CORNER_PVL.separation : 0}>
+      {CORNER_PVL.loopYs.map((y) => <group key={`b-${y}`} position={[joint.endX, y + 0.016, joint.structuralZ]} rotation={[0, Math.PI, 0]}>
+        <mesh position={[-0.012, 0, 0]} material={pocketMaterial}><boxGeometry args={[0.026, 0.12, 0.085]} /></mesh>
+        <mesh geometry={loop} material={loopMaterial} castShadow />
+      </group>)}
+    </EasedGroupX>
+
+    {/* Vertical bar through every overlapping pair of loops. */}
+    <mesh ref={rodRef} position={[joint.x, ROD_PARKED_Y, joint.structuralZ]} material={rodMaterial} castShadow visible={false}>
+      <cylinderGeometry args={[0.011, 0.011, rodLength, 14]} />
+    </mesh>
+
+    {/* Grout rises from the bottom of the joint between the structural wythes. */}
+    <group ref={groutRef} position={[joint.x, -height / 2, joint.structuralZ]} scale={[1, 0.0001, 1]} visible={false}>
+      <mesh position={[0, height / 2, 0]} material={jointGrout} castShadow receiveShadow>
+        <boxGeometry args={[joint.width, height, structural.thickness]} />
+      </mesh>
+    </group>
+
+    {/* After grouting the rest of the joint is closed: insulation insert and outer sealant. */}
+    {stage >= 4 && <>
+      <mesh position={[joint.x, 0, joint.insulationZ]} material={jointInsulation}>
+        <boxGeometry args={[joint.width, height, insulation.thickness]} />
+      </mesh>
+      <mesh position={[joint.x, 0, joint.facadeZ]} material={sealantMaterial}>
+        <boxGeometry args={[joint.width, height, PANEL_GEOMETRY.facade.thickness]} />
+      </mesh>
+    </>}
   </group>;
 };
