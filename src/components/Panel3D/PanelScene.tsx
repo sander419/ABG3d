@@ -38,18 +38,23 @@ interface CameraRigProps {
   isInteracting: boolean;
   resetKey?: number;
   mode: WidgetViewMode;
-  /** "Угол": frame the joint instead of the panel centre. */
-  focusCorner?: boolean;
+  /** "Угол": 'wide' frames the whole corner (crane step), 'close' the joint section. */
+  cornerView?: 'off' | 'wide' | 'close';
   controlsRef?: React.MutableRefObject<OrbitControlsType | null>;
 }
 
-// The PVL joint faces the room side: from the usual front 3/4 view panel B hides it
-// completely. For the corner demo the camera moves behind and above the joint.
+// The PVL pocket is at the inner (room-side) corner: from the usual front view it is
+// hidden inside the wall. For the corner demo the camera moves into the room, above it.
 const DEFAULT_LOOK_AT = new THREE.Vector3(0, 0.05, 0);
-const CORNER_LOOK_AT = new THREE.Vector3(1.04, 0.5, -0.25);
-const CORNER_OFFSET = new THREE.Vector3(-1.2, 1.95, -2.0);
+const CORNER_VIEWS = {
+  // Step 1: the building corner from outside, so panel B is seen coming down onto it.
+  wide: { lookAt: new THREE.Vector3(0.55, 0.3, -0.35), offset: new THREE.Vector3(2.5, 1.35, 3.1) },
+  // Steps 2–4: close over the loop-level section, looking into the grout pocket.
+  close: { lookAt: new THREE.Vector3(0.67, 0.8, -0.13), offset: new THREE.Vector3(-0.24, 0.66, -0.34) },
+};
 
-function CameraRig({ isInteracting, resetKey = 0, mode, focusCorner = false, controlsRef }: CameraRigProps) {
+function CameraRig({ isInteracting, resetKey = 0, mode, cornerView = 'off', controlsRef }: CameraRigProps) {
+  const corner = cornerView === 'off' ? null : CORNER_VIEWS[cornerView];
   const { size } = useThree();
   const isPortrait = size.width < size.height;
   const aspect = size.width / Math.max(1, size.height);
@@ -76,7 +81,7 @@ function CameraRig({ isInteracting, resetKey = 0, mode, focusCorner = false, con
   // Reset custom orbit when user triggers camera reset or switches to/from the corner view
   useEffect(() => {
     hasCustomOrbitRef.current = false;
-  }, [resetKey, focusCorner]);
+  }, [resetKey, cornerView]);
 
   useFrame((state, delta) => {
     // Detect when user finishes interacting with OrbitControls
@@ -91,7 +96,7 @@ function CameraRig({ isInteracting, resetKey = 0, mode, focusCorner = false, con
     if (isInteracting) return;
 
     // Orbit and rig must share one pivot, otherwise OrbitControls snaps the view back.
-    const lookAt = focusCorner ? CORNER_LOOK_AT : DEFAULT_LOOK_AT;
+    const lookAt = corner ? corner.lookAt : DEFAULT_LOOK_AT;
     easing.damp3(targetLookAtRef, [lookAt.x, lookAt.y, lookAt.z], 0.6, delta);
     if (controlsRef?.current) controlsRef.current.target.copy(targetLookAtRef);
 
@@ -113,9 +118,9 @@ function CameraRig({ isInteracting, resetKey = 0, mode, focusCorner = false, con
 
     if (!hasCustomOrbitRef.current) {
       // Default architectural hero perspective: anchored slab with gentle organic breathing
-      const heroX = focusCorner ? CORNER_LOOK_AT.x + CORNER_OFFSET.x * scale : baseX;
-      const heroY = focusCorner ? CORNER_LOOK_AT.y + CORNER_OFFSET.y * scale : baseY;
-      const heroZ = focusCorner ? CORNER_LOOK_AT.z + CORNER_OFFSET.z * scale : baseZ;
+      const heroX = corner ? corner.lookAt.x + corner.offset.x * scale : baseX;
+      const heroY = corner ? corner.lookAt.y + corner.offset.y * scale : baseY;
+      const heroZ = corner ? corner.lookAt.z + corner.offset.z * scale : baseZ;
       const targetX = heroX + pointerX + breathX;
       const targetY = heroY + pointerY + breathY;
       const targetZ = heroZ + breathZ;
@@ -170,7 +175,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
   useEffect(() => {
     if (!cornerPlaying) return;
     if (cornerStage >= 4) { setCornerPlaying(false); return; }
-    const holdMs: Record<CornerStage, number> = { 1: 2200, 2: 2200, 3: 2600, 4: 0 };
+    const holdMs: Record<CornerStage, number> = { 1: 3000, 2: 2400, 3: 2600, 4: 0 };
     const timer = window.setTimeout(() => setCornerStage((stage) => Math.min(4, stage + 1) as CornerStage), holdMs[cornerStage]);
     return () => window.clearTimeout(timer);
   }, [cornerPlaying, cornerStage]);
@@ -305,13 +310,13 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
           far={40}
         />
 
-        <CameraRig isInteracting={isInteracting} resetKey={resetKey} mode={mode} focusCorner={demoVariant === 'corner'} controlsRef={controlsRef} />
+        <CameraRig isInteracting={isInteracting} resetKey={resetKey} mode={mode} cornerView={demoVariant !== 'corner' ? 'off' : cornerStage === 1 ? 'wide' : 'close'} controlsRef={controlsRef} />
 
         <OrbitControls
           ref={controlsRef}
           enableDamping={true}
           dampingFactor={0.05}
-          minDistance={1.8}
+          minDistance={demoVariant === 'corner' ? 0.7 : 1.8}
           maxDistance={7.5}
           maxPolarAngle={Math.PI / 2 + 0.05}
           enablePan={false}
@@ -492,7 +497,7 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         return (
           <div className="absolute bottom-[7.5rem] left-1/2 z-20 w-[min(420px,calc(100vw-1rem))] -translate-x-1/2 border border-black/10 bg-[#F3F0E9]/95 p-3 shadow-[0_12px_30px_rgba(38,34,27,0.12)] backdrop-blur-md lg:bottom-16">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[9px] uppercase tracking-[0.16em] text-[#846846]">Как соединяются панели · Peikko PVL</p>
+              <p className="text-[9px] uppercase tracking-[0.16em] text-[#846846]">Угол: соединение Peikko PVL · разрез на уровне петель</p>
               <button type="button" onClick={playCorner} className="text-[10px] text-[#665F55] underline-offset-2 hover:text-[#1D1C19] hover:underline">{cornerPlaying ? 'Идёт показ…' : 'Показать заново'}</button>
             </div>
             <ol role="group" aria-label="Шаги соединения панелей" className="mt-2 grid grid-cols-4 gap-1">

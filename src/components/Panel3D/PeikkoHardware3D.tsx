@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { PanelDemoVariant, WidgetViewMode } from '../../data/panelConfig';
-import { Opening, SERVICE_SLEEVES, WINDOW_OPENINGS } from '../../lib/panelScenarios';
+import { Opening, SERVICE_SLEEVES, WINDOW_OPENINGS, cornerPocket } from '../../lib/panelScenarios';
 
 interface PeikkoHardware3DProps {
   facadeZ: number;
@@ -114,15 +114,21 @@ export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
   const structuralMeshXs = isServices
     ? meshXs.filter((x) => !SERVICE_SLEEVES.some((s) => Math.abs(x - s.x) < barMargin))
     : meshXs;
-  const trussXs = isWindows ? allTrussXs.filter((x) => !WINDOW_OPENINGS.some((o) => crossesOpeningX(x, o, barMargin))) : allTrussXs;
+  const trussXs = isWindows
+    ? allTrussXs.filter((x) => !WINDOW_OPENINGS.some((o) => crossesOpeningX(x, o, barMargin)))
+    // Corner panel: the inner wythe stops at the grout pocket, so the right-hand truss moves inboard.
+    : isCorner ? [-0.62, 0.42] : allTrussXs;
+  // Corner panel: inner-wythe bars stop short of the pocket; the facade wythe runs on to the mitre.
+  const innerEndX = isCorner ? cornerPocket().faceX - 0.05 : 0.925;
+  const innerMeshXs = structuralMeshXs.filter((x) => x <= innerEndX);
 
   return (
     <group onClick={(event) => { event.stopPropagation(); onSelect('anchors'); }} visible={structureMode || selected}>
       {/* A500C/Bp-I mesh representation in both concrete layers. The structural (inner)
           layer additionally routes around service sleeves in the "Коммуникации" variant. */}
       {[outerRebarZ, innerRebarZ].map((z, layer) => <group key={`mesh-${layer}`}>
-        {(layer === 1 ? structuralMeshXs : meshXs).map((x) => <Rod key={`v-${layer}-${x}`} x={x} y1={-1.02} z1={z} y2={1.02} z2={z} radius={0.006} material={rebar} ribbed />)}
-        {meshYs.map((y) => <HorizontalRod key={`h-${layer}-${y}`} x1={-0.925} x2={0.925} y={y} z={z - 0.012} radius={0.006} material={rebar} ribbed />)}
+        {(layer === 1 ? innerMeshXs : meshXs).map((x) => <Rod key={`v-${layer}-${x}`} x={x} y1={-1.02} z1={z} y2={1.02} z2={z} radius={0.006} material={rebar} ribbed />)}
+        {meshYs.map((y) => <HorizontalRod key={`h-${layer}-${y}`} x1={-0.925} x2={layer === 1 ? innerEndX : 0.925} y={y} z={z - 0.012} radius={0.006} material={rebar} ribbed />)}
       </group>)}
 
       {/* PDM: two flanges along the panel height and a continuous stainless zig-zag through insulation. */}
@@ -134,11 +140,8 @@ export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
         </React.Fragment>)}
       </group>)}
 
-      {/* PVL loop boxes are placed on the vertical joint edge; loop pitch is illustrative.
-          The "Угол" variant has a real joint on the OPPOSITE (right) edge, already drawn
-          by CornerJoint at the correct location — showing this generic left-edge end
-          condition too would put unconnected hardware over empty space. */}
-      {!isCorner && [-0.68, 0, 0.68].map((y) => <group key={`pvl-${y}`} position={[-1.005, y, structuralZ + 0.035]}>
+      {/* PVL loop boxes on the panel's other vertical edge, for the joint with the next panel; pitch is illustrative. */}
+      {[-0.68, 0, 0.68].map((y) => <group key={`pvl-${y}`} position={[-1.005, y, structuralZ + 0.035]}>
         <mesh material={box}><boxGeometry args={[0.05, 0.13, 0.07]} /></mesh>
         <mesh geometry={loopGeometry} material={steel} castShadow />
       </group>)}

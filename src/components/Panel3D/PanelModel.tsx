@@ -14,9 +14,9 @@ import { SwissCallout } from './SwissCallout';
 import { InvisibleHotspot, HotspotAnnotation } from './InvisibleHotspot';
 import { createPIRShaderMaterial } from './PIRShaderMaterial';
 import { PANEL_GEOMETRY } from '../../lib/panelGeometry';
-import { CornerJoint, ScenarioLayerExtras, syncScenarioClipping } from './PanelScenarioGeometry';
-import { PerforatedSlab } from './PerforatedSlab';
-import { CORNER_PVL, CornerStage, Opening, WINDOW_OPENINGS } from '../../lib/panelScenarios';
+import { CornerFacadeSeal, CornerLoops, CornerPanelB, CornerPocketFill, ScenarioLayerExtras, sectionCapMaterials, syncScenarioClipping } from './PanelScenarioGeometry';
+import { CornerEndSlab, PerforatedSlab } from './PerforatedSlab';
+import { CORNER_PVL, CornerStage, LayerId, Opening, WINDOW_OPENINGS } from '../../lib/panelScenarios';
 
 interface PanelModelProps {
   mode: WidgetViewMode;
@@ -37,14 +37,21 @@ interface LayerSlabProps {
   radius: number;
   smoothness: number;
   onClick: (event: ThreeEvent<MouseEvent>) => void;
+  /** "Угол": the slab's +x end is the stepped/mitred corner end (see cornerLayerOutline). */
+  cornerEnd?: { layer: LayerId; panelCenterZ: number; sectionY?: number };
 }
 
-// A plain rounded slab, or the same slab with openings cut through its full thickness.
-const LayerSlab: React.FC<LayerSlabProps> = ({ size, material, openings, position, radius, smoothness, onClick }) => (
-  openings
+// A plain rounded slab, the same slab with openings cut through its full thickness,
+// or a corner-end slab.
+const LayerSlab: React.FC<LayerSlabProps> = ({ size, material, openings, position, radius, smoothness, onClick, cornerEnd }) => {
+  if (cornerEnd) {
+    const section = cornerEnd.sectionY !== undefined ? { y: cornerEnd.sectionY, material: sectionCapMaterials[cornerEnd.layer] } : undefined;
+    return <CornerEndSlab layer={cornerEnd.layer} depth={size[2]} panelCenterZ={cornerEnd.panelCenterZ} material={material} position={position} onClick={onClick} section={section} />;
+  }
+  return openings
     ? <PerforatedSlab width={size[0]} height={size[1]} depth={size[2]} openings={openings} material={material} position={position} onClick={onClick} />
-    : <RoundedBox args={size} position={position} radius={radius} smoothness={smoothness} material={material} castShadow receiveShadow onClick={onClick} />
-);
+    : <RoundedBox args={size} position={position} radius={radius} smoothness={smoothness} material={material} castShadow receiveShadow onClick={onClick} />;
+};
 
 export const PanelModel: React.FC<PanelModelProps> = ({
   mode,
@@ -80,7 +87,10 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const W = PANEL_GEOMETRY.width;
   const H = PANEL_GEOMETRY.height;
   const openings = demoVariant === 'windows' ? WINDOW_OPENINGS : undefined;
-  const cornerSeparation = demoVariant === 'corner' && cornerStage === 1 ? CORNER_PVL.separation : 0;
+  const isCorner = demoVariant === 'corner';
+  // Step 1 shows whole walls (panel B being lowered); from step 2 the walls are cut at loop level.
+  const cornerSectionOn = isCorner && cornerStage >= 2;
+  const cornerSection = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), CORNER_PVL.sectionY), []);
   const dFacade = PANEL_GEOMETRY.facade.thickness;
   const dPIR = PANEL_GEOMETRY.insulation.thickness;
   const dStructural = PANEL_GEOMETRY.structural.thickness;
@@ -182,7 +192,10 @@ export const PanelModel: React.FC<PanelModelProps> = ({
 
   // Dynamically synchronize clipping planes to materials with double-sided rendering
   useEffect(() => {
-    const planes = clippingPlanes && clippingPlanes.length > 0 ? clippingPlanes : null;
+    const toolPlanes = clippingPlanes && clippingPlanes.length > 0 ? clippingPlanes : [];
+    // "Угол": the walls are shown in a horizontal section at loop level (see CORNER_PVL.sectionY).
+    const layerPlanes = cornerSectionOn ? [...toolPlanes, cornerSection] : toolPlanes;
+    const planes = layerPlanes.length > 0 ? layerPlanes : null;
 
     facadeMaterial.clippingPlanes = planes;
     facadeMaterial.clipShadows = true;
@@ -203,8 +216,8 @@ export const PanelModel: React.FC<PanelModelProps> = ({
     insulationMaterial.side = THREE.DoubleSide;
     insulationMaterial.needsUpdate = true;
 
-    syncScenarioClipping(planes);
-  }, [clippingPlanes, facadeMaterial, structuralMaterial, pirShaderMat, insulationMaterial]);
+    syncScenarioClipping(toolPlanes.length > 0 ? toolPlanes : null, planes, isCorner && cornerStage >= 4);
+  }, [isCorner, cornerSectionOn, cornerStage, cornerSection, clippingPlanes, facadeMaterial, structuralMaterial, pirShaderMat, insulationMaterial]);
 
   const isThermal = mode === 'thermal';
   const isStructure = mode === 'structure';
@@ -405,12 +418,14 @@ export const PanelModel: React.FC<PanelModelProps> = ({
           smoothness={4}
           material={facadeMaterial}
           openings={openings}
+          cornerEnd={isCorner ? { layer: 'facade', panelCenterZ: baseFacadeZ, sectionY: cornerSectionOn ? CORNER_PVL.sectionY : undefined } : undefined}
           onClick={(e) => {
             e.stopPropagation();
             onSelect('facade');
           }}
         />
-        <ScenarioLayerExtras variant={demoVariant} layer="facade" material={facadeMaterial} layerCenterZ={baseFacadeZ} onSelect={onSelect} cornerSeparation={cornerSeparation} />
+        {isCorner && <CornerFacadeSeal stage={cornerStage} />}
+        <ScenarioLayerExtras variant={demoVariant} layer="facade" material={facadeMaterial} layerCenterZ={baseFacadeZ} onSelect={onSelect} />
 
         {/* Swiss Callout for Facade */}
         {showCallouts && selectedId === 'facade' && (
@@ -424,8 +439,6 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         )}
       </group>
 
-      {demoVariant === 'corner' && <CornerJoint offsetZ={targetStructuralZ - baseStructuralZ} stage={cornerStage} />}
-
       {/* 2. 200 mm insulation contour. ABG describes it as two 100 mm layers;
           the small physical split is visible in the exploded view. Thermal mode
           remains a continuous material so its illustrative colour gradient stays legible. */}
@@ -437,6 +450,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
             smoothness={3}
             material={pirShaderMat}
             openings={openings}
+            cornerEnd={isCorner ? { layer: 'insulation', panelCenterZ: basePIRZ, sectionY: cornerSectionOn ? CORNER_PVL.sectionY : undefined } : undefined}
             onClick={(e) => {
               e.stopPropagation();
               onSelect('insulation');
@@ -453,6 +467,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
                 smoothness={3}
                 material={insulationMaterial}
                 openings={openings}
+                cornerEnd={isCorner ? { layer: 'insulation', panelCenterZ: basePIRZ + side * dPIR / 4, sectionY: cornerSectionOn ? CORNER_PVL.sectionY : undefined } : undefined}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect('insulation');
@@ -462,7 +477,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
           </>
         )}
 
-        <ScenarioLayerExtras variant={demoVariant} layer="insulation" material={isThermal ? pirShaderMat : insulationMaterial} layerCenterZ={basePIRZ} onSelect={onSelect} cornerSeparation={cornerSeparation} />
+        <ScenarioLayerExtras variant={demoVariant} layer="insulation" material={isThermal ? pirShaderMat : insulationMaterial} layerCenterZ={basePIRZ} onSelect={onSelect} />
 
         {/* Swiss Callout for PIR */}
         {showCallouts && selectedId === 'insulation' && (
@@ -484,12 +499,18 @@ export const PanelModel: React.FC<PanelModelProps> = ({
           smoothness={4}
           material={structuralMaterial}
           openings={openings}
+          cornerEnd={isCorner ? { layer: 'structural', panelCenterZ: baseStructuralZ, sectionY: cornerSectionOn ? CORNER_PVL.sectionY : undefined } : undefined}
           onClick={(e) => {
             e.stopPropagation();
             onSelect('structural');
           }}
         />
-        <ScenarioLayerExtras variant={demoVariant} layer="structural" material={structuralMaterial} layerCenterZ={baseStructuralZ} onSelect={onSelect} cornerSeparation={cornerSeparation} />
+        {/* PVL loops on this panel's corner end, the bar and the grout in the corner pocket. */}
+        {isCorner && <>
+          <CornerLoops stage={cornerStage} />
+          <CornerPocketFill stage={cornerStage} />
+        </>}
+        <ScenarioLayerExtras variant={demoVariant} layer="structural" material={structuralMaterial} layerCenterZ={baseStructuralZ} onSelect={onSelect} />
 
         {/* Swiss Callout for Structural */}
         {showCallouts && selectedId === 'structural' && (
@@ -513,6 +534,27 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         clippingPlanes={clippingPlanes}
         demoVariant={demoVariant}
       />
+
+      {/* "Угол": the second, identical panel with its own reinforcement diagram. */}
+      {isCorner && <CornerPanelB
+        stage={cornerStage}
+        materials={{ facade: facadeMaterial, insulation: insulationMaterial, thermal: pirShaderMat, structural: structuralMaterial }}
+        isThermal={isThermal}
+        hideInsulation={isStructure}
+        sectioned={cornerSectionOn}
+        k={k}
+        targets={{ facade: targetFacadeZ, insulation: targetPIRZ, structural: targetStructuralZ }}
+        onSelect={onSelect}
+        hardware={<PeikkoHardware3D
+          facadeZ={targetFacadeZ}
+          structuralZ={targetStructuralZ}
+          highlightedId={selectedId}
+          onSelect={onSelect}
+          mode={mode}
+          clippingPlanes={clippingPlanes}
+          demoVariant={demoVariant}
+        />}
+      />}
 
       {/* Swiss Callout for Peikko Hardware */}
       {showCallouts && selectedId === 'anchors' && (

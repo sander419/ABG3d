@@ -42,62 +42,86 @@ export function validateOpenings(openings: readonly Opening[], panelWidth: numbe
 export type LayerId = 'facade' | 'insulation' | 'structural';
 
 /**
- * Outside corner: panel A ends at x = width / 2, a grouted vertical joint follows,
- * then panel B runs backwards (-z) with its layers stacked across x — structural
- * nearest the joint, facade outermost. B's front end is flush with A's facade plane.
+ * Outside corner of two IDENTICAL sandwich panels (B is A mirrored across the 45°
+ * corner plane). Each panel's corner end is stepped: the 120 mm inner wythes stop
+ * short of the corner and leave a square grout pocket at the inner corner; the
+ * insulation and the facade wythe run on and meet the other panel on a 45° mitre.
+ *
+ * Connection per Peikko PVL: loops cast in boxes on both inner-wythe end faces are
+ * folded out into the pocket after erection, overlap, a vertical bar goes through
+ * all of them, the pocket is grouted (PVL technical manual 02/2020; Terwa loop box
+ * "corner joint"). Loop pitch, protrusion and bar size are illustrative.
+ *
+ * Panel-local frame: length along x (corner end at +x), thickness along z
+ * (room face at -T/2, facade face at +T/2), origin at the panel centre.
  */
-// The joint is drawn wider than a site joint so the loops, bar and grout stay
-// readable on screen; the real width comes from the ABG joint detail.
-export const CORNER = { jointWidth: 0.08, returnLength: 1.35 };
+export const CORNER = {
+  /** A's facade reaches the outer corner here — the panel keeps its 2.0 m width. */
+  outerX: PANEL_GEOMETRY.width / 2,
+};
 
-/**
- * PVL principle (Peikko): wire loops cast into both panel edges fold out into the
- * joint and overlap, a vertical bar is dropped through the overlap, the joint is
- * grouted. Loop pitch, protrusion and wire size here are illustrative.
- */
 export const CORNER_PVL = {
-  loopYs: [-0.72, -0.24, 0.24, 0.72],
-  protrusion: 0.07,
-  loopHalfWidth: 0.032,
-  /** Panel B lifts in from this far away in step 1. */
-  separation: 0.5,
+  loopYs: [-0.84, -0.42, 0, 0.42, 0.84],
+  protrusion: 0.088,
+  loopHalfWidth: 0.03,
+  /** Peikko: loops of the two panels lie on top of each other, max 20 mm apart. */
+  pairOffsetY: 0.018,
+  /** Step 1: panel B is lowered by crane from this height. */
+  liftHeight: 1.9,
+  /**
+   * Walls and grout are shown in a horizontal section just above the top loop (like the
+   * plan drawings in the Peikko manual) — otherwise the pocket is buried inside the wall.
+   */
+  sectionY: 0.91,
 };
 
 export type CornerStage = 1 | 2 | 3 | 4;
 
 export const CORNER_STAGES: readonly { stage: CornerStage; title: string; text: string }[] = [
-  { stage: 1, title: 'Петли', text: 'В торцы обеих панелей на заводе заложены стальные тросовые петли.' },
-  { stage: 2, title: 'Стыковка', text: 'Вторую панель ставят краном — петли из двух торцов заходят друг в друга.' },
-  { stage: 3, title: 'Стержень', text: 'Сверху через все петли опускают вертикальный арматурный стержень — он сцепляет панели.' },
-  { stage: 4, title: 'Бетон', text: 'Шов заливают бетоном: петли и стержень оказываются внутри, узел становится монолитным.' },
+  { stage: 1, title: 'Монтаж', text: 'Вторую панель краном опускают на место. Петли пока сложены в коробках в торцах несущих слоёв.' },
+  { stage: 2, title: 'Петли', text: 'Петли отгибают из коробок: из обоих торцов они заходят в угловой карман и ложатся одна над другой.' },
+  { stage: 3, title: 'Стержень', text: 'Сверху через все петли опускают вертикальный арматурный стержень — он сцепляет две панели.' },
+  { stage: 4, title: 'Бетон', text: 'Карман заливают безусадочным бетоном: петли и стержень внутри, угол монолитный. Снаружи шов герметизируют.' },
 ];
 
-export function cornerLayout() {
-  const { width, totalThickness, facade, insulation, structural } = PANEL_GEOMETRY;
-  const start = width / 2 + CORNER.jointWidth;
-  const structuralX = start + structural.thickness / 2;
-  const insulationX = start + structural.thickness + insulation.thickness / 2;
-  const facadeX = start + structural.thickness + insulation.thickness + facade.thickness / 2;
+/** Where the corner end of a layer stops, at thickness position z (panel-local). */
+export function cornerEndX(layer: LayerId, z: number): number {
+  const { totalThickness } = PANEL_GEOMETRY;
+  // Inner wythe: stops one full wall thickness short of the outer corner.
+  if (layer === 'structural') return CORNER.outerX - totalThickness;
+  // Insulation and facade: 45° mitre through the outer corner.
+  return CORNER.outerX + (z - totalThickness / 2);
+}
+
+/** Plan outline (x, z) of a layer slice between z0 and z1, corner end at +x. */
+export function cornerLayerOutline(layer: LayerId, z0: number, z1: number): [number, number][] {
+  const start = -PANEL_GEOMETRY.width / 2;
+  return [[start, z0], [cornerEndX(layer, z0), z0], [cornerEndX(layer, z1), z1], [start, z1]];
+}
+
+/** Panel B = panel A mirrored in x, turned +90° about Y, then offset. Maps A-local (x, z) to world (X, Z). */
+export const CORNER_PANEL_B = {
+  position: [CORNER.outerX - PANEL_GEOMETRY.totalThickness / 2, 0, PANEL_GEOMETRY.totalThickness / 2 - CORNER.outerX] as [number, number, number],
+  rotationY: Math.PI / 2,
+  mirrorX: -1,
+};
+
+export function panelBToWorld(x: number, z: number): [number, number] {
+  // mirror (-x, z), rotate +90° about Y: (x, z) -> (z, -x), then offset
+  const [ox, , oz] = CORNER_PANEL_B.position;
+  return [z + ox, x + oz];
+}
+
+/** The grout pocket: a square between the two inner-wythe ends, at the inner corner. */
+export function cornerPocket() {
+  const { structural, totalThickness } = PANEL_GEOMETRY;
+  const size = structural.thickness;
   return {
-    layers: {
-      structural: { x: structuralX, thickness: structural.thickness },
-      insulation: { x: insulationX, thickness: insulation.thickness },
-      facade: { x: facadeX, thickness: facade.thickness },
-    } satisfies Record<LayerId, { x: number; thickness: number }>,
-    length: CORNER.returnLength,
-    centerZ: totalThickness / 2 - CORNER.returnLength / 2,
-    joint: {
-      x: width / 2 + CORNER.jointWidth / 2,
-      width: CORNER.jointWidth,
-      depth: totalThickness,
-      /** Panel A's end face and panel B's inner face. */
-      startX: width / 2,
-      endX: start,
-      /** Loops and grout sit in the structural wythes, where the two panels bear on each other. */
-      structuralZ: structural.centerZ,
-      insulationZ: insulation.centerZ,
-      facadeZ: facade.centerZ,
-    },
+    x: CORNER.outerX - totalThickness + size / 2,
+    z: structural.centerZ,
+    size,
+    /** A's inner-wythe end face (loops point +x from here, panel-local). */
+    faceX: CORNER.outerX - totalThickness,
   };
 }
 
