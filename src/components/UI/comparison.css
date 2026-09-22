@@ -6,7 +6,7 @@
 .comparison-close { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; cursor: pointer; color: #736c61; }
 .comparison-close:hover { background: #e6e0d5; }
 .comparison-body { padding: 0 36px 24px; }
-.comparison-switch { display: flex; border-bottom: 1px solid #d3cbbf; gap: 26px; }
+.comparison-switch { display: flex; overflow-x: auto; border-bottom: 1px solid #d3cbbf; gap: 26px; }
 .comparison-switch button { display: flex; align-items: center; gap: 9px; min-height: 48px; border-bottom: 2px solid transparent; font-size: 13px; cursor: pointer; color: #716a60; transition: color 150ms, border-color 150ms; }
 .comparison-switch button span { font: 10px 'IBM Plex Mono', monospace; color: #887154; }
 .comparison-switch button[aria-pressed=true] { color: #25231f; border-color: #947552; }

@@ -43,6 +43,17 @@ const perspectives = [
     blockSteps: ['Блок выбранной марки', 'Кладочные швы', 'Узлы по расчёту'],
     caveat: 'Это сравнение устройства стен. Какая стена теплее и сколько стоит отопление, определяют расчётом для одного климата и одинаковых условий эксплуатации.',
   },
+  {
+    id: 'quality', label: 'Контроль качества', number: '04',
+    headline: 'Одинаковый результат — не значит одинаковый процесс.',
+    benefit: 'Панель формуется в цехе при постоянных условиях производства. Кладка выполняется на площадке, где условия меняются день ото дня.',
+    abgTitle: 'Процесс на заводе', blockTitle: 'Процесс на площадке',
+    abg: 'Бетонирование, вибрация и выдержка идут по внутреннему регламенту завода — без погоды, без разной бригады от объекта к объекту. На площадку приезжает уже готовый элемент, а не сырьё для сборки стены.',
+    block: 'Результат кладки зависит от бригады, температуры воздуха и качества раствора в конкретный день. Отклонения замечают и исправляют по ходу работ на месте.',
+    abgSteps: ['Формование в цехе', 'Выдержка по регламенту завода', 'Готовый элемент на объект'],
+    blockSteps: ['Кладка бригадой на месте', 'Контроль в процессе', 'Исправление отклонений на площадке'],
+    caveat: 'Оба подхода дают качественный результат при соблюдении технологии. Разница — в том, где и кем этот результат контролируется, и сколько отходов и мусора остаётся на площадке к сдаче объекта.',
+  },
 ] as const;
 
 export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({ isOpen, onClose, onOpenCalculator }) => {
@@ -56,7 +67,7 @@ export const ComparisonDrawer: React.FC<ComparisonDrawerProps> = ({ isOpen, onCl
         <button type="button" onClick={onClose} aria-label="Закрыть сравнение" className="comparison-close"><X size={20} strokeWidth={1.5} /></button>
       </div>
       <div className="comparison-body">
-        <div role="group" aria-label="Что сравниваем" className="comparison-switch">
+        <div role="group" aria-label="Что сравниваем" className="comparison-switch no-scrollbar">
           {perspectives.map((item, index) => <button type="button" key={item.id} aria-pressed={index === selected} onClick={() => setSelected(index)}><span>{item.number}</span>{item.label}</button>)}
         </div>
         <div className="comparison-insight" aria-live="polite" aria-atomic="true">

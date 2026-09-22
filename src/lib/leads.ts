@@ -240,7 +240,10 @@ export interface SubmitOptions {
 export const DEFAULT_TIMEOUT_MS = 12000;
 
 const MESSAGES: Record<SubmitFailureReason, string> = {
-  'too-fast': 'Пожалуйста, проверьте контакт и повторите отправку.',
+  // Not "check your contact" — the actual trigger is submitting faster than a human
+  // fill would take (autofill, or a form reopened with values still in it), and the
+  // real fix for a genuine user is simply trying again a moment later.
+  'too-fast': 'Не удалось отправить — попробуйте ещё раз через пару секунд.',
   'no-endpoint': 'Отправка сейчас недоступна: канал заявок не настроен.',
   network: 'Не удалось связаться с сервером заявок. Проверьте связь и повторите отправку.',
   timeout: 'Сервер не ответил вовремя. Повторите отправку — данные сохранены.',

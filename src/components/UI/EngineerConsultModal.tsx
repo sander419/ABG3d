@@ -91,7 +91,7 @@ export const EngineerConsultModal: React.FC<EngineerConsultModalProps> = ({
             Сообщение отправлено
           </h3>
           <p className="text-xs text-[#52525B] max-w-xs">
-            Ведущий конструктор завода свяжется с вами в течение 15 минут в рабочее время.
+            Ведущий конструктор завода свяжется с вами в ближайшее рабочее время.
           </p>
           <button
             onClick={onClose}

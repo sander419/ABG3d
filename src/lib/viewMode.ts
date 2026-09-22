@@ -32,11 +32,15 @@ export const MODE_SCRUBBABLE: Record<WidgetViewMode, boolean> = {
   thermal: false,
 };
 
+// Single source of truth for the on-screen mode text. CenterModeCapsule and
+// RightMetricsRail both render this — they used to each hardcode their own copy,
+// which had already drifted (an all-caps 'СБОРКА'/'РАЗОБРАН' style nobody saw next
+// to the live 'Собрана'/'Слои' the capsule actually shows).
 export const MODE_LABELS: Record<WidgetViewMode, string> = {
-  assembled: 'СБОРКА',
-  exploded: 'РАЗОБРАН',
-  structure: 'АРМАТУРА',
-  thermal: 'ТЕПЛО',
+  assembled: 'Собрана',
+  exploded: 'Слои',
+  structure: 'Арматура',
+  thermal: 'Тепловая схема',
 };
 
 export interface ModeChangePatch {

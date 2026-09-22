@@ -412,9 +412,40 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
             showPlaneHelper={clippingState.showPlaneHelper}
             onToggleShowPlaneHelper={handleToggleShowPlaneHelper}
             onReset={handleResetClipping}
+            demoVariant={demoVariant}
           />
         </div>
       )}
+
+      {/* "Узлы" demo-variant switcher. Rendered before stage-controls-dock in the DOM
+          (though it sits visually below the mode capsule and above the dock) so tab
+          order matches the top-to-bottom reading order the 4 mode tabs already follow —
+          previously the bottom camera controls came first in the tab sequence. It also
+          sits one notch lower (top-24/sm:top-28) than it used to, so the mode capsule's
+          second row (scrubber / thermal caption) has room above it. That still isn't
+          enough clearance from the cross-section dock's own multi-row panel once it's
+          open — a fixed vertical gap can't outrun a panel of variable height — so while
+          "Сечение" is open this bar moves to the opposite (left) edge instead of staying
+          centered under the right-anchored dock; on this widget's aspect ratio (canvas
+          filling most of the width) that's ample room for both. */}
+      <div role="group" aria-label="Демонстрационные узлы панели" className={`no-scrollbar absolute top-24 z-20 flex max-w-[calc(100vw-1rem)] items-center gap-1 overflow-x-auto border border-black/10 bg-[#F3F0E9]/90 p-1 shadow-[0_12px_30px_rgba(38,34,27,0.1)] backdrop-blur-md transition-[left,transform] duration-200 sm:top-28 ${clippingState.enabled ? 'left-3' : 'left-1/2 -translate-x-1/2'}`}>
+        <span className="sr-only">Узлы</span>
+        <span aria-hidden="true" className="hidden px-2 text-[9px] uppercase tracking-[0.16em] text-[#846846] md:block">Узлы</span>
+        {([
+          ['standard', 'Панель'],
+          ['corner', 'Угол'],
+          ['windows', 'Окна'],
+          ['services', 'Коммуникации'],
+        ] as const).map(([variant, label]) => (
+          <button
+            key={variant}
+            type="button"
+            aria-pressed={demoVariant === variant}
+            onClick={() => onDemoVariantChange?.(variant)}
+            className={`whitespace-nowrap px-2.5 py-1.5 text-[10px] transition-[background-color,color,transform] active:scale-[0.96] ${demoVariant === variant ? 'bg-[#1D1C19] text-[#F3F0E9]' : 'text-[#665F55] hover:bg-black/[0.05] hover:text-[#1D1C19]'}`}
+          >{label}</button>
+        ))}
+      </div>
 
       {/* Floating touch interaction mode & camera reset controls.
           Raised above the mobile action bar (<lg); on larger stages the group is
@@ -474,28 +505,12 @@ export const PanelScene: React.FC<PanelSceneProps> = ({
         <button
           id="orbit-reset-camera-btn"
           onClick={resetCamera}
-          className="cursor-pointer border border-black/10 bg-[#F3F0E9]/90 p-2 text-[#6F695F] shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black"
+          className="flex min-h-9 cursor-pointer items-center gap-1.5 border border-black/10 bg-[#F3F0E9]/90 px-3 py-1.5 text-[11px] tracking-tight text-[#6F695F] shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black"
           title="Сбросить ракурс камеры"
         >
-          <RotateCw className="w-3.5 h-3.5" />
+          <RotateCw className="h-3.5 w-3.5 shrink-0" />
+          <span className="hidden font-medium whitespace-nowrap sm:inline">Сбросить вид</span>
         </button>
-      </div>
-
-      <div className="absolute left-1/2 top-16 z-20 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto border border-black/10 bg-[#F3F0E9]/90 p-1 shadow-[0_12px_30px_rgba(38,34,27,0.1)] backdrop-blur-md sm:top-20">
-        <span className="hidden px-2 text-[9px] uppercase tracking-[0.16em] text-[#846846] md:block">Узлы</span>
-        {([
-          ['standard', 'Панель'],
-          ['corner', 'Угол'],
-          ['windows', 'Окна'],
-          ['services', 'Коммуникации'],
-        ] as const).map(([variant, label]) => (
-          <button
-            key={variant}
-            type="button"
-            onClick={() => onDemoVariantChange?.(variant)}
-            className={`whitespace-nowrap px-2.5 py-1.5 text-[10px] transition-[background-color,color,transform] active:scale-[0.96] ${demoVariant === variant ? 'bg-[#1D1C19] text-[#F3F0E9]' : 'text-[#665F55] hover:bg-black/[0.05] hover:text-[#1D1C19]'}`}
-          >{label}</button>
-        ))}
       </div>
 
       {/* Renderer diagnostics remain internal: technical status never competes with the product. */}

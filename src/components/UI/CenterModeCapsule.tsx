@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flame } from 'lucide-react';
 import { WidgetViewMode } from '../../data/panelConfig';
+import { MODE_LABELS } from '../../lib/viewMode';
 
 interface CenterModeCapsuleProps {
   currentMode: WidgetViewMode;
@@ -9,12 +10,7 @@ interface CenterModeCapsuleProps {
   onScrubChange: (value: number) => void;
 }
 
-const modes: { id: WidgetViewMode; label: string }[] = [
-  { id: 'exploded', label: 'Слои' },
-  { id: 'assembled', label: 'Собрана' },
-  { id: 'structure', label: 'Арматура' },
-  { id: 'thermal', label: 'Тепловая схема' },
-];
+const modeIds: WidgetViewMode[] = ['exploded', 'assembled', 'structure', 'thermal'];
 
 export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
   currentMode,
@@ -24,18 +20,18 @@ export const CenterModeCapsule: React.FC<CenterModeCapsuleProps> = ({
 }) => (
   <div className="pointer-events-none flex max-w-[calc(100vw-1.5rem)] flex-col items-center gap-2.5 select-none">
     <div role="group" aria-label="Режим отображения панели" className="pointer-events-auto flex items-center bg-[#F4F1EA]/95 p-1 shadow-[0_18px_48px_rgba(31,28,22,0.14)] ring-1 ring-black/10 backdrop-blur-xl">
-      {modes.map((mode) => {
-        const active = currentMode === mode.id;
+      {modeIds.map((id) => {
+        const active = currentMode === id;
         return (
           <button
-            key={mode.id}
-            id={`mode-${mode.id}-btn`}
-            onClick={() => onModeChange(mode.id)}
+            key={id}
+            id={`mode-${id}-btn`}
+            onClick={() => onModeChange(id)}
             aria-pressed={active}
             className={`flex min-h-10 items-center gap-1.5 px-3 text-[11px] tracking-[-0.01em] transition-colors sm:px-4 ${active ? 'bg-[#1D1C19] text-white' : 'text-[#6E685E] hover:bg-black/[0.045] hover:text-[#1D1C19]'}`}
           >
-            {mode.id === 'thermal' && <Flame className={`h-3.5 w-3.5 ${active ? 'text-[#B89A70]' : 'text-[#8B7354]'}`} />}
-            <span>{mode.label}</span>
+            {id === 'thermal' && <Flame className={`h-3.5 w-3.5 ${active ? 'text-[#B89A70]' : 'text-[#8B7354]'}`} />}
+            <span>{MODE_LABELS[id]}</span>
           </button>
         );
       })}

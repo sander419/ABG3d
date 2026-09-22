@@ -1,5 +1,6 @@
 import React from 'react';
-import { WidgetViewMode } from '../../data/panelConfig';
+import { PANEL_CONFIG, WidgetViewMode } from '../../data/panelConfig';
+import { MODE_LABELS } from '../../lib/viewMode';
 
 interface RightMetricsRailProps {
   currentMode: WidgetViewMode;
@@ -19,11 +20,34 @@ const facts = [
   ['На заводе', 'изготовление слоёв'],
 ];
 
-export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({ onOpenCalculator, onOpenConsult, onOpenComparison, onOpenAssembly, onToggle2D, is2DActive }) => (
+const MODE_ORDER: WidgetViewMode[] = ['assembled', 'exploded', 'structure', 'thermal'];
+
+export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({ currentMode, onModeChange, onOpenCalculator, onOpenConsult, onOpenComparison, onOpenAssembly, onToggle2D, is2DActive, selectedId }) => {
+  const selectedLayer = selectedId ? PANEL_CONFIG.layers.find((layer) => layer.id === selectedId) : null;
+
+  return (
   <aside className="no-scrollbar flex h-full w-full flex-col overflow-y-auto bg-[#201F1C] px-7 py-8 text-[#F3F0E9]">
     <p className="text-[10px] uppercase tracking-[0.22em] text-[#B89A70]">Индивидуальный проект</p>
     <h2 className="mt-3 text-[28px] font-normal leading-[1.08] tracking-[-0.04em]">Архитектура начинается с конструкции</h2>
     <p className="mt-4 text-[13px] leading-relaxed text-[#B9B4AA]">Инженер ABG адаптирует панель под геометрию дома, климат и выбранную отделку.</p>
+
+    <div role="group" aria-label="Режим отображения панели" className="mt-6 grid grid-cols-2 gap-1 bg-white/[0.06] p-1">
+      {MODE_ORDER.map((id) => {
+        const active = currentMode === id;
+        return (
+          <button
+            key={id}
+            onClick={() => onModeChange(id)}
+            aria-pressed={active}
+            className={`px-2 py-2 text-[11px] tracking-[-0.01em] transition-colors ${active ? 'bg-[#F3F0E9] text-[#1D1C19]' : 'text-[#B9B4AA] hover:bg-white/[0.08] hover:text-white'}`}
+          >{MODE_LABELS[id]}</button>
+        );
+      })}
+    </div>
+
+    {selectedLayer && (
+      <p className="mt-3 text-[11px] leading-relaxed text-[#D8C1A2]">Выбран слой: <span className="text-white">{selectedLayer.title}</span> · {selectedLayer.thickness}</p>
+    )}
 
     <dl className="mt-9 border-t border-white/14">
       {facts.map(([value, label]) => (
@@ -47,4 +71,5 @@ export const RightMetricsRail: React.FC<RightMetricsRailProps> = ({ onOpenCalcul
       <p className="mt-4 text-[10px] leading-relaxed text-[#A9A398]">Толщины слоёв показаны для иллюстративной конфигурации.</p>
     </div>
   </aside>
-);
+  );
+};

@@ -5,15 +5,18 @@ import { PanelDemoVariant } from '../../data/panelConfig';
 import { PANEL_GEOMETRY } from '../../lib/panelGeometry';
 import { CORNER, LayerId, Opening, SERVICE_BOX, SERVICE_SLEEVES, WINDOW_OPENINGS, cornerLayout } from '../../lib/panelScenarios';
 
-const frameMaterial = new THREE.MeshStandardMaterial({ color: '#242522', roughness: 0.28, metalness: 0.58 });
-const glassMaterial = new THREE.MeshPhysicalMaterial({ color: '#32454B', roughness: 0.12, metalness: 0.18, transmission: 0.08, transparent: true, opacity: 0.9 });
+// side: DoubleSide on every scenario material — the cross-section tool clips these
+// meshes too (see syncScenarioClipping below), and a clipped FrontSide mesh shows a
+// hollow, see-through cut instead of a solid face at the cut plane.
+const frameMaterial = new THREE.MeshStandardMaterial({ color: '#242522', roughness: 0.28, metalness: 0.58, side: THREE.DoubleSide });
+const glassMaterial = new THREE.MeshPhysicalMaterial({ color: '#32454B', roughness: 0.12, metalness: 0.18, transmission: 0.08, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
 const serviceMaterials = {
-  red: new THREE.MeshStandardMaterial({ color: '#A94A40', roughness: 0.38, metalness: 0.15 }),
-  blue: new THREE.MeshStandardMaterial({ color: '#4E7898', roughness: 0.38, metalness: 0.15 }),
-  box: new THREE.MeshStandardMaterial({ color: '#8E816D', roughness: 0.58, metalness: 0.35 }),
+  red: new THREE.MeshStandardMaterial({ color: '#A94A40', roughness: 0.38, metalness: 0.15, side: THREE.DoubleSide }),
+  blue: new THREE.MeshStandardMaterial({ color: '#4E7898', roughness: 0.38, metalness: 0.15, side: THREE.DoubleSide }),
+  box: new THREE.MeshStandardMaterial({ color: '#8E816D', roughness: 0.58, metalness: 0.35, side: THREE.DoubleSide }),
 };
-const jointGrout = new THREE.MeshStandardMaterial({ color: '#A59D8F', roughness: 0.96 });
-const pvlBoxMaterial = new THREE.MeshStandardMaterial({ color: '#8E816D', roughness: 0.58, metalness: 0.35 });
+const jointGrout = new THREE.MeshStandardMaterial({ color: '#A59D8F', roughness: 0.96, side: THREE.DoubleSide });
+const pvlBoxMaterial = new THREE.MeshStandardMaterial({ color: '#8E816D', roughness: 0.58, metalness: 0.35, side: THREE.DoubleSide });
 
 const scenarioMaterials: THREE.Material[] = [frameMaterial, glassMaterial, ...Object.values(serviceMaterials), jointGrout, pvlBoxMaterial];
 
@@ -53,12 +56,15 @@ interface ScenarioLayerExtrasProps {
  * follow it through the exploded/structure/thermal offsets.
  */
 export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ variant, layer, material, layerCenterZ, onSelect }) => {
-  const { height, insulation, structural } = PANEL_GEOMETRY;
+  const { height, structural } = PANEL_GEOMETRY;
 
-  if (variant === 'windows' && layer === 'insulation') {
-    // Frame sits in the outer part of the insulation, glass in the middle of the opening.
-    const depth = 0.07;
-    return <group position={[0, 0, insulation.thickness / 2 - depth / 2 - 0.01]}>
+  if (variant === 'windows' && layer === 'facade') {
+    // Rendered inside the facade's own group (not insulation's) so the frame/glass
+    // ride the SAME animated Z as the punched hole in the facade slab. Parenting it
+    // to insulation instead used to leave the frame behind while the facade (and its
+    // cut opening) explode away in "Разобран"/"Тепло", stranding an empty hole.
+    const depth = 0.05;
+    return <group>
       {WINDOW_OPENINGS.map((opening) => <WindowUnit key={opening.id} opening={opening} depth={depth} />)}
     </group>;
   }
@@ -104,11 +110,19 @@ export const ScenarioLayerExtras: React.FC<ScenarioLayerExtrasProps> = ({ varian
   return null;
 };
 
+interface CornerJointProps {
+  /** Current structural-layer explosion delta (targetStructuralZ - baseStructuralZ).
+   * The grouted joint and its PVL loops are cast at the structural wythe's depth, so
+   * they track that layer's Z instead of staying frozen at the assembled position —
+   * otherwise the joint visibly detaches from the wing walls in Разобран/Арматура/Тепло. */
+  offsetZ?: number;
+}
+
 /** Grouted vertical joint between the two corner panels, with the continuous bar and PVL boxes. */
-export const CornerJoint: React.FC = () => {
+export const CornerJoint: React.FC<CornerJointProps> = ({ offsetZ = 0 }) => {
   const { height } = PANEL_GEOMETRY;
   const { joint } = cornerLayout();
-  return <group position={[joint.x, 0, 0]}>
+  return <group position={[joint.x, 0, offsetZ]}>
     <mesh material={jointGrout} castShadow receiveShadow><boxGeometry args={[joint.width, height, joint.depth]} /></mesh>
     <mesh material={frameMaterial} castShadow><cylinderGeometry args={[0.012, 0.012, height + 0.1, 12]} /></mesh>
     {[-0.68, 0, 0.68].map((y) => <mesh key={y} position={[0, y, joint.depth / 2 + 0.001]} material={pvlBoxMaterial}><boxGeometry args={[CORNER.jointWidth * 0.8, 0.12, 0.012]} /></mesh>)}

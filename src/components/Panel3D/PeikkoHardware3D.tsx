@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { WidgetViewMode } from '../../data/panelConfig';
+import { PanelDemoVariant, WidgetViewMode } from '../../data/panelConfig';
+import { Opening, SERVICE_SLEEVES, WINDOW_OPENINGS } from '../../lib/panelScenarios';
 
 interface PeikkoHardware3DProps {
   facadeZ: number;
@@ -9,6 +10,20 @@ interface PeikkoHardware3DProps {
   onSelect: (id: string) => void;
   mode: WidgetViewMode;
   clippingPlanes?: THREE.Plane[];
+  /** "Узлы" demo variant — this generic reinforcement diagram is otherwise blind to
+   * it, so a window cutout, a service sleeve, or the corner joint can end up with a
+   * rebar bar running straight through it. */
+  demoVariant?: PanelDemoVariant;
+}
+
+/** True if a vertical bar at this x, spanning the full panel height, would pass through the opening. */
+function crossesOpeningX(x: number, opening: Opening, margin: number): boolean {
+  return Math.abs(x - opening.x) < opening.width / 2 + margin;
+}
+
+/** True if a horizontal bar at this y, spanning the full panel width, would pass through the opening. */
+function crossesOpeningY(y: number, opening: Opening, margin: number): boolean {
+  return Math.abs(y - opening.y) < opening.height / 2 + margin;
 }
 
 /** A rod between two points in the YZ plane. Three's cylinder axis is Y. */
@@ -48,7 +63,7 @@ const HorizontalRod = ({ x1, x2, y, z, radius, material, ribbed = false }: {
  * deliberately non-project-specific until ABG supplies KЖ / IFC.
  */
 export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
-  facadeZ, structuralZ, highlightedId, onSelect, mode, clippingPlanes,
+  facadeZ, structuralZ, highlightedId, onSelect, mode, clippingPlanes, demoVariant = 'standard',
 }) => {
   const selected = highlightedId === 'anchors';
   const loopGeometry = useMemo(() => new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
@@ -76,20 +91,37 @@ export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
 
   // Bars are a visual mesh, not a reinforcement specification. They sit inside
   // the two concrete wythes and only surface in the dedicated structure mode.
-  const meshXs = [-0.8, -0.4, 0, 0.4, 0.8];
-  const meshYs = [-0.9, -0.45, 0, 0.45, 0.9];
+  const allMeshXs = [-0.8, -0.4, 0, 0.4, 0.8];
+  const allMeshYs = [-0.9, -0.45, 0, 0.45, 0.9];
   const outerRebarZ = facadeZ - 0.010;
   const innerRebarZ = structuralZ + 0.015;
   const frontFlangeZ = facadeZ + 0.010;
   const rearFlangeZ = structuralZ + 0.035;
-  const trussXs = [-0.62, 0.62];
+  const allTrussXs = [-0.62, 0.62];
   const trussY = [-1.00, -0.68, -0.36, -0.04, 0.28, 0.60, 0.92];
+
+  // A generic mesh grid otherwise has no idea a window cutout or a service sleeve
+  // occupies part of the panel — left alone it draws a bar straight through the
+  // glass, or a rebar rod straight through a factory sleeve. This diagram isn't a
+  // reinforcement spec, so the honest move for these demo variants is to omit the
+  // bar rather than invent how it would actually be routed around the obstruction.
+  const barMargin = 0.05;
+  const isWindows = demoVariant === 'windows';
+  const isServices = demoVariant === 'services';
+  const isCorner = demoVariant === 'corner';
+  const meshXs = isWindows ? allMeshXs.filter((x) => !WINDOW_OPENINGS.some((o) => crossesOpeningX(x, o, barMargin))) : allMeshXs;
+  const meshYs = isWindows ? allMeshYs.filter((y) => !WINDOW_OPENINGS.some((o) => crossesOpeningY(y, o, barMargin))) : allMeshYs;
+  const structuralMeshXs = isServices
+    ? meshXs.filter((x) => !SERVICE_SLEEVES.some((s) => Math.abs(x - s.x) < barMargin))
+    : meshXs;
+  const trussXs = isWindows ? allTrussXs.filter((x) => !WINDOW_OPENINGS.some((o) => crossesOpeningX(x, o, barMargin))) : allTrussXs;
 
   return (
     <group onClick={(event) => { event.stopPropagation(); onSelect('anchors'); }} visible={structureMode || selected}>
-      {/* A500C/Bp-I mesh representation in both concrete layers. */}
+      {/* A500C/Bp-I mesh representation in both concrete layers. The structural (inner)
+          layer additionally routes around service sleeves in the "Коммуникации" variant. */}
       {[outerRebarZ, innerRebarZ].map((z, layer) => <group key={`mesh-${layer}`}>
-        {meshXs.map((x) => <Rod key={`v-${layer}-${x}`} x={x} y1={-1.02} z1={z} y2={1.02} z2={z} radius={0.006} material={rebar} ribbed />)}
+        {(layer === 1 ? structuralMeshXs : meshXs).map((x) => <Rod key={`v-${layer}-${x}`} x={x} y1={-1.02} z1={z} y2={1.02} z2={z} radius={0.006} material={rebar} ribbed />)}
         {meshYs.map((y) => <HorizontalRod key={`h-${layer}-${y}`} x1={-0.925} x2={0.925} y={y} z={z - 0.012} radius={0.006} material={rebar} ribbed />)}
       </group>)}
 
@@ -102,8 +134,11 @@ export const PeikkoHardware3D: React.FC<PeikkoHardware3DProps> = ({
         </React.Fragment>)}
       </group>)}
 
-      {/* PVL loop boxes are placed on the vertical joint edge; loop pitch is illustrative. */}
-      {[-0.68, 0, 0.68].map((y) => <group key={`pvl-${y}`} position={[-1.005, y, structuralZ + 0.035]}>
+      {/* PVL loop boxes are placed on the vertical joint edge; loop pitch is illustrative.
+          The "Угол" variant has a real joint on the OPPOSITE (right) edge, already drawn
+          by CornerJoint at the correct location — showing this generic left-edge end
+          condition too would put unconnected hardware over empty space. */}
+      {!isCorner && [-0.68, 0, 0.68].map((y) => <group key={`pvl-${y}`} position={[-1.005, y, structuralZ + 0.035]}>
         <mesh material={box}><boxGeometry args={[0.05, 0.13, 0.07]} /></mesh>
         <mesh geometry={loopGeometry} material={steel} castShadow />
       </group>)}

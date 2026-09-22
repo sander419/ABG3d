@@ -205,8 +205,12 @@ export const PanelModel: React.FC<PanelModelProps> = ({
   const isThermal = mode === 'thermal';
   const isStructure = mode === 'structure';
   // Services demo: the facade becomes a veil and the insulation is hidden so the
-  // sleeves in the inner wythe can be read; it is a presentation cut-away.
-  const isCutaway = demoVariant === 'services';
+  // sleeves in the inner wythe can be read; it is a presentation cut-away — but only
+  // in "Собрана". Without the mode guard this used to override every other mode too:
+  // it hid the PIR core (the entire subject of "Тепло"), left "Разобран" with only one
+  // visible layer to separate, and made "Собрана" show a near-invisible ghost facade
+  // for a mode meant to sell the finished, solid look.
+  const isCutaway = demoVariant === 'services' && mode === 'assembled';
   // The sales view keeps the object itself unobstructed. Layer navigation lives
   // in the rails/callouts; floating HTML targets are reserved for an eventual
   // dedicated engineering-inspection mode.
@@ -416,7 +420,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         )}
       </group>
 
-      {demoVariant === 'corner' && <CornerJoint />}
+      {demoVariant === 'corner' && <CornerJoint offsetZ={targetStructuralZ - baseStructuralZ} />}
 
       {/* 2. 200 mm insulation contour. ABG describes it as two 100 mm layers;
           the small physical split is visible in the exploded view. Thermal mode
@@ -503,6 +507,7 @@ export const PanelModel: React.FC<PanelModelProps> = ({
         onSelect={onSelect}
         mode={mode}
         clippingPlanes={clippingPlanes}
+        demoVariant={demoVariant}
       />
 
       {/* Swiss Callout for Peikko Hardware */}

@@ -11,6 +11,8 @@ import {
   Info,
 } from 'lucide-react';
 import { ClippingAxis } from './CrossSectionPlaneHelper';
+import { PanelDemoVariant } from '../../data/panelConfig';
+import { CORNER } from '../../lib/panelScenarios';
 
 export interface CrossSectionControlProps {
   enabled: boolean;
@@ -24,6 +26,9 @@ export interface CrossSectionControlProps {
   showPlaneHelper: boolean;
   onToggleShowPlaneHelper: () => void;
   onReset: () => void;
+  /** "Угол" (corner) puts a second wing well outside the straight panel's own
+   * X/Z extent — see the X-axis range below. */
+  demoVariant?: PanelDemoVariant;
 }
 
 export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
@@ -38,8 +43,16 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
   showPlaneHelper,
   onToggleShowPlaneHelper,
   onReset,
+  demoVariant = 'standard',
 }) => {
-  // Axis range definitions in meters
+  const isCorner = demoVariant === 'corner';
+  // Axis range definitions in meters. For "Угол" the return wing sits at world X
+  // up to roughly 1.0 (panel half-width) + joint + full layer stack, i.e. close to
+  // 1.4 m — without widening this, the X slider can never reach it at all, and the
+  // wing's own long axis runs in world Z, mostly outside the default ±195 mm slab
+  // range too. Widening X (the more useful cut for showing the wing's 3-layer
+  // sandwich) is the pragmatic fix; Z stays panel-only since re-deriving a sensible
+  // per-axis range for every "Узлы" variant is out of scope for this pass.
   const axisRanges: Record<
     ClippingAxis,
     { min: number; max: number; step: number; label: string; sub: string }
@@ -49,15 +62,25 @@ export const CrossSectionControl: React.FC<CrossSectionControlProps> = ({
       max: 0.195,
       step: 0.005,
       label: 'Z · Толщина (390 мм)',
-      sub: 'Послойный срез: фасад → теплоизоляция → несущий слой',
+      sub: isCorner
+        ? 'Послойный срез основной панели (угловая пристройка сюда не входит)'
+        : 'Послойный срез: фасад → теплоизоляция → несущий слой',
     },
-    x: {
-      min: -1.0,
-      max: 1.0,
-      step: 0.02,
-      label: 'X · Ширина (2.0 м)',
-      sub: 'Вертикальный продольный разрез',
-    },
+    x: isCorner
+      ? {
+          min: -1.0,
+          max: 1.0 + CORNER.jointWidth + 0.4,
+          step: 0.02,
+          label: 'X · Панель + угловая пристройка',
+          sub: 'Разрез проходит и через основную панель, и через угловую стену',
+        }
+      : {
+          min: -1.0,
+          max: 1.0,
+          step: 0.02,
+          label: 'X · Ширина (2.0 м)',
+          sub: 'Вертикальный продольный разрез',
+        },
     y: {
       min: -1.2,
       max: 1.2,

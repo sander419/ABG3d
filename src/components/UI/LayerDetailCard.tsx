@@ -22,6 +22,7 @@ export const LayerDetailCard: React.FC<LayerDetailCardProps> = ({ selectedId, on
         <button onClick={onClose} aria-label="Закрыть сведения о слое" className="grid h-7 w-7 shrink-0 place-items-center text-[#777168] transition-colors hover:bg-black/5 hover:text-black"><X className="h-3.5 w-3.5" /></button>
       </div>
       <p className="mt-2 line-clamp-1 text-[11px] leading-relaxed text-[#6F695F]">{layer.subtitle}</p>
+      <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-[#8C857A]">{layer.spec}</p>
     </section>
   );
 };

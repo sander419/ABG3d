@@ -15,7 +15,7 @@
  *     (`exploded` | `assembled` | `structure` | `thermal`); приходит и при загрузке,
  *     поэтому отдельного «ready» не требуется;
  *   - `abg3d:overlay` payload `{ overlay, open }` — состояние модалок
- *     (`calc` | `consult` | `compare` | null);
+ *     (`calc` | `consult` | `compare` | `assembly` | null);
  *   - `abg3d:lead`    payload `{ kind, status, reason?, httpStatus? }` — итог отправки
  *     заявки. **Персональные данные в событие не попадают**: ни контакта, ни текста
  *     сообщения в payload нет.

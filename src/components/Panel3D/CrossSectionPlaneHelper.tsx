@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
 export type ClippingAxis = 'z' | 'x' | 'y';
@@ -14,7 +14,12 @@ export const CrossSectionPlaneHelper: React.FC<CrossSectionPlaneHelperProps> = (
   offset,
   visible,
 }) => {
-  if (!visible) return null;
+  // Both useMemo calls below must run on every render regardless of `visible` —
+  // React's Rules of Hooks forbid a hook count that changes between renders of the
+  // same component instance. `visible` starts false and this component is never
+  // unmounted/remounted (no key change) when the user first opens the cross-section
+  // tool, so an early `return null` before these hooks used to throw "Rendered more
+  // hooks than during the previous render" the first time the tool was switched on.
 
   // Geometry dimensions and orientation depending on slice axis
   const config = useMemo(() => {
@@ -43,6 +48,11 @@ export const CrossSectionPlaneHelper: React.FC<CrossSectionPlaneHelperProps> = (
     }
   }, [axis, offset]);
 
+  const borderGeometry = useMemo(() => new THREE.BoxGeometry(...config.borderArgs), [config.borderArgs]);
+  useEffect(() => () => borderGeometry.dispose(), [borderGeometry]);
+
+  if (!visible) return null;
+
   return (
     <group position={config.position} rotation={config.rotation}>
       {/* Translucent cutting plane blade */}
@@ -59,7 +69,7 @@ export const CrossSectionPlaneHelper: React.FC<CrossSectionPlaneHelperProps> = (
 
       {/* Perimeter hairline glowing border */}
       <lineSegments>
-        <edgesGeometry args={[useMemo(() => new THREE.BoxGeometry(...config.borderArgs), [config.borderArgs])]} />
+        <edgesGeometry args={[borderGeometry]} />
         <lineBasicMaterial color="#38BDF8" transparent opacity={0.65} linewidth={1.5} />
       </lineSegments>
 
